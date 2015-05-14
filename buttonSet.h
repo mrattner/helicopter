@@ -20,8 +20,9 @@
 #define LEFT_B 0X04
 #define RIGHT_B 0X08
 #define SELECT_B 0X10
+#define RESET_B 0X20
 // Constants to identify buttons (need to be consecutive)
-enum butDefs {UP = 0, DOWN = 1, LEFT = 2, RIGHT = 3, SELECT = 4};
+enum butDefs {UP = 0, DOWN = 1, LEFT = 2, RIGHT = 3, SELECT = 4, RESET = 5};
 #define NUM_BUTTONS 5
 
 

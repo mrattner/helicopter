@@ -14,10 +14,10 @@
 #include "buttonSet.h"
 
 // GPIO port of the buttons
-#define UL_PORT GPIO_PORTG_BASE
+#define UL_PORT GPIO_PORTB_BASE
 
 // Array of button structs
-static button_t buttonsArray[5];
+static button_t buttonsArray[6];
 
 // Flag for whether initButSet has been called
 static unsigned int initialised = 0;
@@ -61,24 +61,28 @@ void initButSet (unsigned char buttons, unsigned int tickRateHz) {
 	sysTickmHz = tickRateHz / 1000;
 
 	if (buttons & UP_B) {
-		initButton(&buttonsArray[UP], UL_PORT, GPIO_PIN_3);
-		ucPins |= GPIO_PIN_3;
-	}
-	if (buttons & DOWN_B) {
-		initButton(&buttonsArray[DOWN], UL_PORT, GPIO_PIN_4);
-		ucPins |= GPIO_PIN_4;
-	}
-	if (buttons & LEFT_B) {
-		initButton(&buttonsArray[LEFT], UL_PORT, GPIO_PIN_5);
+		initButton(&buttonsArray[UP], UL_PORT, GPIO_PIN_5);
 		ucPins |= GPIO_PIN_5;
 	}
-	if (buttons & RIGHT_B) {
-		initButton(&buttonsArray[RIGHT], UL_PORT, GPIO_PIN_6);
+	if (buttons & DOWN_B) {
+		initButton(&buttonsArray[DOWN], UL_PORT, GPIO_PIN_6);
 		ucPins |= GPIO_PIN_6;
 	}
+	if (buttons & LEFT_B) {
+		initButton(&buttonsArray[LEFT], UL_PORT, GPIO_PIN_3);
+		ucPins |= GPIO_PIN_3;
+	}
+	if (buttons & RIGHT_B) {
+		initButton(&buttonsArray[RIGHT], UL_PORT, GPIO_PIN_2);
+		ucPins |= GPIO_PIN_2;
+	}
 	if (buttons & SELECT_B) {
-		initButton(&buttonsArray[SELECT], UL_PORT, GPIO_PIN_7);
-		ucPins |= GPIO_PIN_7;
+		initButton(&buttonsArray[SELECT], UL_PORT, GPIO_PIN_4);
+		ucPins |= GPIO_PIN_4;
+	}
+	if (buttons & RESET_B) {
+		initButton(&buttonsArray[RESET], UL_PORT, GPIO_PIN_1);
+		ucPins |= GPIO_PIN_1;
 	}
 
 	// Configure the port and pin used. The peripheral in question
