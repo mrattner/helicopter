@@ -15,21 +15,21 @@
 // Degrees the yaw should change when buttons are pressed
 #define YAW_STEP 15
 
+enum heli_state { HELI_OFF = 0, HELI_STARTING, HELI_ON, HELI_STOPPING };
+
 /* Global Variables */
 
 // Actual values - set by interrupts that monitor the helicopter
-extern volatile int yaw = 0; // Degrees
-extern volatile int avgAltitude = 0; // Percent
+extern volatile int _yaw; // Degrees
+extern volatile int _avgAltitude; // Percent
 
 // Desired values - set by button presses
-extern int desiredYaw = 0; // Degrees
-extern int desiredAltitude = 0; // Percent
+extern int _desiredYaw; // Degrees
+extern int _desiredAltitude; // Percent
 
 // State of the helicopter
-extern enum heli_state = {OFF, STARTING, ON, STOPPING};
-extern int heliState = OFF;
+extern int _heliState;
 
-extern int currentDisplay = 0; // Start with Status display
-
+extern int _currentDisplay;
 
 #endif /* GLOBALS_H_ */

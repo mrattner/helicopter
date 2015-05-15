@@ -4,7 +4,7 @@
 *
 * Author: J. Shaw and M. Rattner
 **/
-
+#include "globals.h"
 #include "circBuf.h"
 #include "buttonSet.h"
 #include "button.h"
@@ -40,17 +40,17 @@
 #define ALTITUDE_DISPLAY 2
 
 // How many degrees * 100 the helicopter rotates per step
-#define YAW_DEG_STEP_100 154
+#define YAW_DEG_STEP_100 160
 
 #define PWM_RATE_HZ 150
 #define PWM_DEF_DUTY 95 // Initial duty cycle
 
 /*
- * Global variables
+ * Static variables (shared within this file)
  */
+
 static circBuf_t altitudeBuffer; // Altitude buffer
-static volatile int yaw = 0; // Yaw in degrees
-static int currentDisplay = STATUS_DISPLAY; // Start with Status display
+
 // Minimum and maximum altitude values. Higher number = lower altitude
 static int minAltitude = -1;
 static int maxAltitude = -1;
@@ -76,15 +76,15 @@ void SysTickIntHandler (void) {
 
 	if (!prevA && yawA) {
 		if (yawB) {
-			yaw += YAW_DEG_STEP_100;
+			_yaw += YAW_DEG_STEP_100;
 		} else {
-			yaw -= YAW_DEG_STEP_100;
+			_yaw -= YAW_DEG_STEP_100;
 		}
 	} else if (prevA && !yawA) {
 		if (yawB) {
-			yaw -= YAW_DEG_STEP_100;
+			_yaw -= YAW_DEG_STEP_100;
 		} else {
-			yaw += YAW_DEG_STEP_100;
+			_yaw += YAW_DEG_STEP_100;
 		}
 	}
 	prevA = yawA;
@@ -206,7 +206,7 @@ void initADC (void) {
 }
 
 /**
- * Initialise the PWM generator. (PWM1--need to change to PWM4)
+ * Initialise the PWM generator.
  */
 void initPWMchan (void) {
 	unsigned long period;
@@ -240,13 +240,12 @@ void initDisplay (void) {
 /**
  * Display the altitude of the heli rig. The measured value from
  * the ADC will be ~1-2 V. Decreasing voltage = increasing altitude.
- * @param altPercent The current altitude as a percentage
  */
-void displayAltitude (int altPercent) {
+void displayAltitude () {
 	char string[30];
 
-	if (altPercent <= 100 && altPercent >= 0) {
-		sprintf(string, "Altitude = %3d%%", altPercent);
+	if (_avgAltitude <= 100 && _avgAltitude >= 0) {
+		sprintf(string, "Altitude = %3d%%", _avgAltitude);
 	} else {
 		sprintf(string, "Invalid altitude");
 	}
@@ -274,18 +273,18 @@ int altitudePercent (unsigned long long ulMeanA) {
  */
 void displayYaw () {
 	char string[30];
-	int degrees = (yaw + 50) / 100;
+	int degrees = (_yaw + 50) / 100;
 	sprintf(string, "Yaw = %3d deg", degrees);
 	RIT128x96x4StringDraw(string, 4, 34, 15);
 }
 
 /**
  * Display the status of the PWM generator.
+ * @param pulseWidth Current PWM pulse width
+ * @param period Current PWM period
  */
-void displayStatus () {
+void displayStatus (unsigned long pulseWidth, unsigned long period) {
 	char string[30];
-	unsigned long pulseWidth = PWMPulseWidthGet(PWM_BASE, PWM_OUT_4);
-	unsigned long period = PWMGenPeriodGet(PWM_BASE, PWM_GEN_2);
 	int duty = (100 * pulseWidth + period / 2) / period;
 
 	sprintf(string, "Duty cycle: %3d%%", duty);
@@ -295,10 +294,9 @@ void displayStatus () {
 /**
  * Sets the PWM duty cycle to be (100 - altitude)%. Holds duty cycle
  * at 5% or 95% if altitude goes above 95% or drops below 5%.
- * @param altPercent The current altitude as a percentage
  */
-void setDutyCycle (int altPercent) {
-	int dutyCycle = 100 - altPercent;
+void setDutyCycle () {
+	int dutyCycle = 100 - _avgAltitude;
 
 	if (dutyCycle < 5) {
 		dutyCycle = 5;
@@ -314,14 +312,10 @@ void setDutyCycle (int altPercent) {
 }
 
 /**
- * Main program loop.
+ * Calls initialisation functions.
  */
-int main (void) {
-	unsigned long long sumA;
-	int i, altPercent;
-
+void initMain (void) {
 	initCircBuf(&altitudeBuffer, BUF_SIZE);
-
 	initSysTick();
 	initRefPin();
 	initPins();
@@ -332,6 +326,16 @@ int main (void) {
 
 	// Enable interrupts to the processor.
 	IntMasterEnable();
+}
+
+/**
+ * Main program loop.
+ */
+int main (void) {
+	unsigned long long sumA;
+	int i;
+
+	initMain();
 
 	while (1) {
 		// Background task: calculate the mean of the values in the
@@ -341,55 +345,56 @@ int main (void) {
 			sumA += readCircBuf(&altitudeBuffer);
 		}
 
-		altPercent = altitudePercent(sumA / altitudeBuffer.size);
+		_avgAltitude = altitudePercent(sumA / altitudeBuffer.size);
 		// Ignore outlying values. Frequently skipping this line indicates
 		// that recalibration of the min. and max. altitude is necessary.
-		if (altPercent <= 100 && altPercent >= 0) {
-			setDutyCycle(altPercent);
+		if (_avgAltitude <= 100 && _avgAltitude >= 0) {
+			setDutyCycle();
 		}
 
 		// Background task: check for button presses and change the
 		// current display mode.
 		if (checkBut(UP)) {
 			RIT128x96x4Clear();	// Clear the OLED display
-			switch (currentDisplay) {
+			switch (_currentDisplay) {
 			case ALTITUDE_DISPLAY:
-				currentDisplay = STATUS_DISPLAY;
+				_currentDisplay = STATUS_DISPLAY;
 				break;
 			case YAW_DISPLAY:
-				currentDisplay = ALTITUDE_DISPLAY;
+				_currentDisplay = ALTITUDE_DISPLAY;
 				break;
 			default:
-				currentDisplay = YAW_DISPLAY;
+				_currentDisplay = YAW_DISPLAY;
 				break;
 			}
 		}
 		if (checkBut(DOWN)) {
 			RIT128x96x4Clear();	// Clear the OLED display
-			switch (currentDisplay) {
+			switch (_currentDisplay) {
 			case ALTITUDE_DISPLAY:
-				currentDisplay = YAW_DISPLAY;
+				_currentDisplay = YAW_DISPLAY;
 				break;
 			case YAW_DISPLAY:
-				currentDisplay = STATUS_DISPLAY;
+				_currentDisplay = STATUS_DISPLAY;
 				break;
 			default:
-				currentDisplay = ALTITUDE_DISPLAY;
+				_currentDisplay = ALTITUDE_DISPLAY;
 				break;
 			}
 		}
 
 		// Background task: Call the appropriate display function
 		// according to the current display mode.
-		switch (currentDisplay) {
+		switch (_currentDisplay) {
 		case YAW_DISPLAY:
 			displayYaw();
 			break;
 		case ALTITUDE_DISPLAY:
-			displayAltitude(altPercent);
+			displayAltitude();
 			break;
 		default:
-			displayStatus();
+			displayStatus(PWMPulseWidthGet(PWM_BASE, PWM_OUT_4),
+					PWMGenPeriodGet(PWM_BASE, PWM_GEN_2));
 		}
 	}
 }
