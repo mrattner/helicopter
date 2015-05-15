@@ -8,6 +8,7 @@
 #include "circBuf.h"
 #include "buttonSet.h"
 #include "button.h"
+#include "display.h"
 
 #include "inc/hw_memmap.h"
 #include "inc/hw_types.h"
@@ -33,11 +34,6 @@
 
 // How many samples over which to average the altitude
 #define BUF_SIZE 20
-
-// The three display screens
-#define STATUS_DISPLAY 0
-#define YAW_DISPLAY 1
-#define ALTITUDE_DISPLAY 2
 
 // How many degrees * 100 the helicopter rotates per step
 #define YAW_DEG_STEP_100 160
@@ -233,28 +229,6 @@ void initPWMchan (void) {
 }
 
 /**
- * Initialise the OLED display with an SSI clock frequency of 1 MHz.
- */
-void initDisplay (void) {
-	RIT128x96x4Init(1000000);
-}
-
-/**
- * Display the altitude of the heli rig. The measured value from
- * the ADC will be ~1-2 V. Decreasing voltage = increasing altitude.
- */
-void displayAltitude () {
-	char string[30];
-
-	if (_avgAltitude <= 100 && _avgAltitude >= 0) {
-		sprintf(string, "Altitude = %3d%%", _avgAltitude);
-	} else {
-		sprintf(string, "Invalid altitude");
-	}
-	RIT128x96x4StringDraw(string, 4, 14, 15);
-}
-
-/**
  * Converts the altitude measurement to a percentage.
  * @param ulMeanA The current altitude measurement
  * @return The altitude as a percentage
@@ -267,30 +241,6 @@ int altitudePercent (unsigned long long ulMeanA) {
 	// Divide MAX_ALTITUDE by this number and multiply by 100 to get
 	// the altitude as a percentage.
 	return (minAltitude - ulMeanA) * 100 / diff;
-}
-
-/**
- * Display the yaw of the heli rig in degrees, relative to start
- * position.
- */
-void displayYaw () {
-	char string[30];
-	int degrees = (_yaw + 50) / 100;
-	sprintf(string, "Yaw = %3d deg", degrees);
-	RIT128x96x4StringDraw(string, 4, 34, 15);
-}
-
-/**
- * Display the status of the PWM generator.
- * @param pulseWidth Current PWM pulse width
- * @param period Current PWM period
- */
-void displayStatus (unsigned long pulseWidth, unsigned long period) {
-	char string[30];
-	int duty = (100 * pulseWidth + period / 2) / period;
-
-	sprintf(string, "Duty cycle: %3d%%", duty);
-	RIT128x96x4StringDraw(string, 4, 54, 15);
 }
 
 /**
@@ -400,4 +350,3 @@ int main (void) {
 		}
 	}
 }
-
