@@ -9,6 +9,7 @@
 #include "buttonSet.h"
 #include "button.h"
 #include "display.h"
+#include "altitude.h"
 
 #include "inc/hw_memmap.h"
 #include "inc/hw_types.h"
@@ -24,7 +25,6 @@
 #include "drivers/rit128x96x4.h"
 
 #include "stdlib.h"
-#include "stdio.h"
 
 /*
  * Constants
@@ -32,24 +32,11 @@
 // Sample rate in Hz
 #define SYSTICK_RATE_HZ 2000
 
-// How many samples over which to average the altitude
-#define BUF_SIZE 20
-
-// How many degrees * 100 the helicopter rotates per step
+// Number of degrees * 100 per slot on the yaw encoder
 #define YAW_DEG_STEP_100 160
 
 #define PWM_RATE_HZ 150
 #define PWM_DEF_DUTY 95 // Initial duty cycle
-
-/*
- * Static variables (shared within this file)
- */
-
-static circBuf_t altitudeBuffer; // Altitude buffer
-
-// Minimum and maximum altitude values. Higher number = lower altitude
-static int minAltitude = -1;
-static int maxAltitude = -1;
 
 /**
  * The interrupt handler called when the SysTick counter reaches 0.
@@ -84,30 +71,6 @@ void SysTickIntHandler (void) {
 		}
 	}
 	prevA = yawA;
-}
-
-/**
- * Handler for the ADC conversion complete interrupt.
- */
-void ADCIntHandler (void) {
-	unsigned long ulValue;
-
-	// Get the sample from ADC0 and store in ulValue.
-	ADCSequenceDataGet(ADC0_BASE, 3, &ulValue);
-
-	// Place ulValue in the altitude buffer.
-	writeCircBuf(&altitudeBuffer, ulValue);
-
-	// Clear the ADC interrupt.
-	ADCIntClear(ADC0_BASE, 3);
-
-	// On our first ADC sample, store the min and max altitude
-	if (minAltitude == -1) {
-		minAltitude = ulValue;
-		// 1023 is the max quantisation value (3.0 V). Divide
-		// this by 3 to get the quantisation value for 1.0 V
-		maxAltitude = ulValue - (1023 / 3);
-	}
 }
 
 /**
@@ -173,37 +136,6 @@ void initSysTick (void) {
 }
 
 /**
- * Initialise the analogue-to-digital converter peripheral.
- */
-void initADC (void) {
-	// Enable the ADC0 peripheral
-	SysCtlPeripheralEnable(SYSCTL_PERIPH_ADC0);
-
-	// Enable sample sequence 3 with a processor signal trigger.
-	// Sequence 3 will do a single sample when the processor
-	// sends a signal to start the conversion (via the ADCProcessorTrigger
-	// function).
-	ADCSequenceConfigure(ADC0_BASE, 3, ADC_TRIGGER_PROCESSOR, 0);
-
-	// Configure step 0 on sequence 3. Sample channel 0 in the default
-	// mode (single-ended) and configure the interrupt flag (IE) to be set
-	// when the sample is done. This is the last conversion on sequence
-	// 3 (END). We are using sequence 3 because we are only using a single
-	// step (step 0).
-	ADCSequenceStepConfigure(ADC0_BASE, 3, 0, ADC_CTL_CH0 | ADC_CTL_IE |
-			ADC_CTL_END);
-
-	// Enable sample sequence 3
-	ADCSequenceEnable(ADC0_BASE, 3);
-
-	// Register the interrupt handler
-	ADCIntRegister(ADC0_BASE, 3, ADCIntHandler);
-
-	// Enable interrupts for ADC0 sequence 3
-	ADCIntEnable(ADC0_BASE, 3);
-}
-
-/**
  * Initialise the PWM generator.
  */
 void initPWMchan (void) {
@@ -226,21 +158,6 @@ void initPWMchan (void) {
 
 	// Enable the PWM generator.
 	PWMGenEnable(PWM_BASE, PWM_GEN_2);
-}
-
-/**
- * Converts the altitude measurement to a percentage.
- * @param ulMeanA The current altitude measurement
- * @return The altitude as a percentage
- */
-int altitudePercent (unsigned long long ulMeanA) {
-	// Find the difference between minimum and maximum altitude
-	int diff = minAltitude - maxAltitude;
-
-	// Find the difference between the measurement and MIN_ALTITUDE.
-	// Divide MAX_ALTITUDE by this number and multiply by 100 to get
-	// the altitude as a percentage.
-	return (minAltitude - ulMeanA) * 100 / diff;
 }
 
 /**
@@ -267,11 +184,10 @@ void setDutyCycle () {
  * Calls initialisation functions.
  */
 void initMain (void) {
-	initCircBuf(&altitudeBuffer, BUF_SIZE);
 	initSysTick();
 	initRefPin();
 	initPins();
-	initADC();
+	initAltitudeMonitoring();
 	initPWMchan();
 	initButtons();
 	initDisplay();
@@ -284,20 +200,13 @@ void initMain (void) {
  * Main program loop.
  */
 int main (void) {
-	unsigned long long sumA;
-	int i;
-
 	initMain();
 
 	while (1) {
 		// Background task: calculate the mean of the values in the
 		// altitude buffer.
-		sumA = 0ull;
-		for (i = 0; i < altitudeBuffer.size; i++) {
-			sumA += readCircBuf(&altitudeBuffer);
-		}
+		calcAvgAltitude();
 
-		_avgAltitude = altitudePercent(sumA / altitudeBuffer.size);
 		// Ignore outlying values. Frequently skipping this line indicates
 		// that recalibration of the min. and max. altitude is necessary.
 		if (_avgAltitude <= 100 && _avgAltitude >= 0) {
