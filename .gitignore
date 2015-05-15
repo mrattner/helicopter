@@ -1,0 +1,10 @@
+.ccsproject
+.cproject
+.launches/
+.project
+.settings/
+Debug/
+ENCE361/
+lm3s1968.cmd
+lm3s1968_startup_ccs.c
+targetConfigs/
