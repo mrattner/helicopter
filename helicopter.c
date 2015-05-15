@@ -146,10 +146,12 @@ void initPins (void) {
  * Initialise the buttons.
  */
 void initButtons (void) {
-	// Enable GPIO port G for the buttons
-	SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOG);
-	// The button set being used is UP and DOWN
-	initButSet(UP_B | DOWN_B, SYSTICK_RATE_HZ);
+	// Enable GPIO port B for the virtual buttons
+	SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOB);
+	// The button set being used is UP, DOWN, LEFT, RIGHT,
+	// SELECT, and RESET on the virtual port
+	initButSet(UP_B | DOWN_B | LEFT_B | RIGHT_B | SELECT_B | RESET_B,
+			PHYSICAL_PORT, SYSTICK_RATE_HZ);
 }
 
 /**

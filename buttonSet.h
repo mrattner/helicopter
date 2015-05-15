@@ -13,6 +13,10 @@
 
 #include "button.h"
 
+// GPIO ports for virtual vs. physical buttons
+#define VIRTUAL_PORT GPIO_PORTB_BASE
+#define PHYSICAL_PORT GPIO_PORTG_BASE
+
 // Bit fields used to select which buttons are initialised in the
 //  button set.  Designed to be ORed in argument to initButSet().
 #define UP_B 0X01
@@ -23,7 +27,7 @@
 #define RESET_B 0X20
 // Constants to identify buttons (need to be consecutive)
 enum butDefs {UP = 0, DOWN = 1, LEFT = 2, RIGHT = 3, SELECT = 4, RESET = 5};
-#define NUM_BUTTONS 5
+#define NUM_BUTTONS 6
 
 
 // *******************************************************
@@ -33,7 +37,7 @@ enum butDefs {UP = 0, DOWN = 1, LEFT = 2, RIGHT = 3, SELECT = 4, RESET = 5};
 //  SysCtlClock frequency is set. 'tickRateHz' is the rate of
 //  SysTick interrupts (set externally).
 void
-initButSet (unsigned char buttons, unsigned int tickRateHz);
+initButSet (unsigned char buttons, unsigned long port, unsigned int tickRateHz);
 
 
 // *******************************************************

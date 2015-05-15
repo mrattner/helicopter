@@ -13,8 +13,25 @@
 #include "button.h"
 #include "buttonSet.h"
 
-// GPIO port of the buttons
-#define UL_PORT GPIO_PORTB_BASE
+// Pin values for Port B (virtual buttons)
+const unsigned char BUTTON_PINS_B[] = {
+	GPIO_PIN_5, // virtual Up
+	GPIO_PIN_6, // virtual Down
+	GPIO_PIN_3, // virtual Left
+	GPIO_PIN_2, // virtual Right
+	GPIO_PIN_4, // virtual Select
+	GPIO_PIN_1 // virtual Reset
+};
+
+// Pin values for Port G (physical buttons)
+const unsigned char BUTTON_PINS_G[] = {
+	GPIO_PIN_3, // physical Up
+	GPIO_PIN_4, // physical Down
+	GPIO_PIN_5, // physical Left
+	GPIO_PIN_6, // physical Right
+	GPIO_PIN_7, // physical Select
+	0 // No GPIO pin for physical Reset
+};
 
 // Array of button structs
 static button_t buttonsArray[6];
@@ -44,11 +61,20 @@ void initButton (button_t *button, unsigned long ulPort, unsigned char ucPin) {
  * SysCtlClock frequency is set.
  * @param buttons Bit pattern formed by UP_B, DOWN_B, etc.
  *  ORed together
+ * @param port Either VIRTUAL_PORT or PHYSICAL_PORT
  * @param tickRateHz Rate of SysTick interrupts (set externally)
  */
-void initButSet (unsigned char buttons, unsigned int tickRateHz) {
+void initButSet (unsigned char buttons, unsigned long port, unsigned int tickRateHz) {
 	unsigned char ucPins = 0;
 	int i;
+	const unsigned char* pinArray;
+
+	// Choose the pin array based on the port
+	if (port == VIRTUAL_PORT) {
+		pinArray = BUTTON_PINS_B;
+	} else if (port == PHYSICAL_PORT){
+		pinArray = BUTTON_PINS_G;
+	}
 
 	// Initialise the buttons to be inactive, with count 0
 	for (i = 0; i < NUM_BUTTONS; i++) {
@@ -60,36 +86,37 @@ void initButSet (unsigned char buttons, unsigned int tickRateHz) {
 	// (a thousandth of the number of SysTick interrupts per second)
 	sysTickmHz = tickRateHz / 1000;
 
+	// Determine the buttons and pins to activate
 	if (buttons & UP_B) {
-		initButton(&buttonsArray[UP], UL_PORT, GPIO_PIN_5);
-		ucPins |= GPIO_PIN_5;
+		initButton(&buttonsArray[UP], port, pinArray[UP]);
+		ucPins |= pinArray[UP];
 	}
 	if (buttons & DOWN_B) {
-		initButton(&buttonsArray[DOWN], UL_PORT, GPIO_PIN_6);
-		ucPins |= GPIO_PIN_6;
+		initButton(&buttonsArray[DOWN], port, pinArray[DOWN]);
+		ucPins |= pinArray[DOWN];
 	}
 	if (buttons & LEFT_B) {
-		initButton(&buttonsArray[LEFT], UL_PORT, GPIO_PIN_3);
-		ucPins |= GPIO_PIN_3;
+		initButton(&buttonsArray[LEFT], port, pinArray[LEFT]);
+		ucPins |= pinArray[LEFT];
 	}
 	if (buttons & RIGHT_B) {
-		initButton(&buttonsArray[RIGHT], UL_PORT, GPIO_PIN_2);
-		ucPins |= GPIO_PIN_2;
+		initButton(&buttonsArray[RIGHT], port, pinArray[RIGHT]);
+		ucPins |= pinArray[RIGHT];
 	}
 	if (buttons & SELECT_B) {
-		initButton(&buttonsArray[SELECT], UL_PORT, GPIO_PIN_4);
-		ucPins |= GPIO_PIN_4;
+		initButton(&buttonsArray[SELECT], port, pinArray[SELECT]);
+		ucPins |= pinArray[SELECT];
 	}
-	if (buttons & RESET_B) {
-		initButton(&buttonsArray[RESET], UL_PORT, GPIO_PIN_1);
-		ucPins |= GPIO_PIN_1;
+	if ((buttons & RESET_B) && port == VIRTUAL_PORT) {
+		initButton(&buttonsArray[RESET], port, pinArray[RESET]);
+		ucPins |= pinArray[RESET];
 	}
 
 	// Configure the port and pin used. The peripheral in question
 	// must be enabled beforehand.
-	GPIODirModeSet(UL_PORT, ucPins, GPIO_DIR_MODE_IN);
+	GPIODirModeSet(port, ucPins, GPIO_DIR_MODE_IN);
 	// Use weak pull-up
-	GPIOPadConfigSet(UL_PORT, ucPins, GPIO_STRENGTH_2MA,
+	GPIOPadConfigSet(port, ucPins, GPIO_STRENGTH_2MA,
 	   GPIO_PIN_TYPE_STD_WPU);
 
 	initialised = 1;
