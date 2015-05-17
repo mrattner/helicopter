@@ -9,10 +9,6 @@
 /*
  * Constants
  */
-// The three display screens
-#define STATUS_DISPLAY 0
-#define YAW_DISPLAY 1
-#define ALTITUDE_DISPLAY 2
 
 /**
  * Initialise the OLED display with an SSI clock frequency of 1 MHz.
@@ -32,8 +28,8 @@ void displayAltitude ();
 void displayYaw ();
 
 /**
- * Display the status of the PWM generator.
- * @param pulseWidth Current PWM pulse width
- * @param period Current PWM period
+ * Display the duty cycle of the PWM generators.
+ * @param mainDuty Duty cycle of the main rotor
+ * @param tailDuty Duty cycle of the tail rotor
  */
-void displayStatus (unsigned long pulseWidth, unsigned long period);
+void displayPWMStatus (unsigned int mainDuty, unsigned int tailDuty);

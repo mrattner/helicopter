@@ -45,14 +45,13 @@ void displayYaw () {
 }
 
 /**
- * Display the status of the PWM generator.
- * @param pulseWidth Current PWM pulse width
- * @param period Current PWM period
+ * Display the duty cycle of the PWM generators.
+ * @param mainDuty Duty cycle of the main rotor
+ * @param tailDuty Duty cycle of the tail rotor
  */
-void displayStatus (unsigned long pulseWidth, unsigned long period) {
+void displayPWMStatus (unsigned int mainDuty, unsigned int tailDuty) {
 	char string[30];
-	int duty = (100 * pulseWidth + period / 2) / period;
-
-	sprintf(string, "Duty cycle: %3d%%", duty);
+	// TODO: Display tail rotor duty cycle as well
+	sprintf(string, "Main rotor: %3d%%", mainDuty);
 	RIT128x96x4StringDraw(string, 4, 54, 15);
 }

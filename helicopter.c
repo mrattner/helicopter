@@ -10,6 +10,7 @@
 #include "button.h"
 #include "display.h"
 #include "altitude.h"
+#include "buttonCheck.h"
 #include "motorControl.h"
 
 #include "inc/hw_memmap.h"
@@ -30,18 +31,8 @@
 /*
  * Constants
  */
-// Sample rate in Hz
-#define SYSTICK_RATE_HZ 2000
-
 // Number of degrees * 100 per slot on the yaw encoder
 #define YAW_DEG_STEP_100 160
-
-// Step of increase of the main rotor
-#define MAIN_ROTOR_STEP 2
-
-#define PWM_RATE_HZ 150
-#define PWM_DEF_DUTY 95 // Initial duty cycle
-
 
 /**
  * The interrupt handler called when the SysTick counter reaches 0.
@@ -79,43 +70,25 @@ void SysTickIntHandler (void) {
 }
 
 /**
- * Provide a Vcc source on Pin 56.
- */
-void initRefPin (void) {
-   // Set Pin 56 (PD0) as a +Vcc low current capacity source
-   SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOD);
-   GPIOPinTypeGPIOOutput(GPIO_PORTD_BASE, GPIO_PIN_0);
-   GPIOPadConfigSet(GPIO_PORTD_BASE, GPIO_PIN_0, GPIO_STRENGTH_8MA,
-      GPIO_PIN_TYPE_STD_WPU);
-   GPIOPinWrite(GPIO_PORTD_BASE, GPIO_PIN_0, GPIO_PIN_0);
-}
-
-/**
- * Initialise the GPIO pins.
+ * Initialise the GPIO ports and pins.
+ * Input on PF5 and PF7
+ * Output on PF2 and PD1
  */
 void initPins (void) {
-	// Enable and configure the port and pins used.
-	// Input on PF5: Pin 27 and PF7: Pin 29
+	// Enable the ports that will be used (Port D and Port F)
+	SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOD);
 	SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOF);
+
+	// Configure input pins: PF5 (Pin 27) and PF7 (Pin 29)
 	GPIOPinTypeGPIOInput(GPIO_PORTF_BASE, GPIO_PIN_5|GPIO_PIN_7);
-	// Use weak pull-up
+	// Use weak pull-up on input pins
 	GPIOPadConfigSet(GPIO_PORTF_BASE, GPIO_PIN_5|GPIO_PIN_7, GPIO_STRENGTH_2MA,
 	   GPIO_PIN_TYPE_STD_WPU);
 
-	// Initialise PF2/PWM4 (Port 22) for PWM output
+	// Initialise PD1/PWM1 (Pin 53) for PWM output
+	GPIOPinTypePWM(GPIO_PORTD_BASE, GPIO_PIN_1);
+	// Initialise PF2/PWM4 (Pin 22) for PWM output
 	GPIOPinTypePWM(GPIO_PORTF_BASE, GPIO_PIN_2);
-}
-
-/**
- * Initialise the buttons.
- */
-void initButtons (void) {
-	// Enable GPIO port B for the virtual buttons
-	SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOG);
-	// The button set being used is UP, DOWN, LEFT, RIGHT,
-	// SELECT, and RESET on the virtual port
-	initButSet(UP_B | DOWN_B | LEFT_B | RIGHT_B | SELECT_B | RESET_B,
-			PHYSICAL_PORT, SYSTICK_RATE_HZ);
 }
 
 /**
@@ -141,73 +114,10 @@ void initSysTick (void) {
 }
 
 /**
- * Initialise the PWM generator.
- */
-void initPWMchan (void) {
-	unsigned long period;
-
-	SysCtlPeripheralEnable(SYSCTL_PERIPH_PWM);
-
-	// Compute the PWM period based on the system clock.
-	SysCtlPWMClockSet(SYSCTL_PWMDIV_4);
-	PWMGenConfigure(PWM_BASE, PWM_GEN_2,
-			PWM_GEN_MODE_UP_DOWN | PWM_GEN_MODE_NO_SYNC);
-	// We set the PWM clock to be 1/4 the system clock, so set the period
-	// to be 1/4 the system clock divided by the desired frequency.
-	period = SysCtlClockGet() / 4 / PWM_RATE_HZ;
-	PWMGenPeriodSet(PWM_BASE, PWM_GEN_2, period);
-	PWMPulseWidthSet(PWM_BASE, PWM_OUT_4, period * PWM_DEF_DUTY / 100);
-
-	// Enable the PWM output signal.
-	PWMOutputState(PWM_BASE, PWM_OUT_4_BIT, true);
-
-	// Enable the PWM generator.
-	PWMGenEnable(PWM_BASE, PWM_GEN_2);
-}
-
-/**
- * Sets the PWM duty cycle to be (100 - altitude)%. Holds duty cycle
- * at 5% or 95% if altitude goes above 95% or drops below 5%.
- */
-void setDutyCycle () {
-	int dutyCycle = 100 - _avgAltitude;
-
-	if (dutyCycle < 5) {
-		dutyCycle = 5;
-	} else if (dutyCycle > 95) {
-		dutyCycle = 95;
-	}
-
-	unsigned long period = PWMGenPeriodGet(PWM_BASE, PWM_GEN_2);
-
-	// Set the pulse width according to the desired duty cycle.
-	// Round the value instead of truncating when dividing by 100
-	PWMPulseWidthSet(PWM_BASE, PWM_OUT_4, (period * dutyCycle + 50) / 100);
-}
-
-/**
- * Controls the altitude
- *
- */
-void altitudeControl () {
-	int currentPulseWidth = PWMPulseWidthGet(PWM_BASE, PWM_OUT_4);
-	int currentPeriod =  PWMGenPeriodGet(PWM_BASE, PWM_GEN_2);
-	int currentDutyCycle = (100 * currentPulseWidth + currentPeriod / 2) / currentPeriod;
-
-	if (_avgAltitude < _desiredAltitude) {
-		setMainRotorDutyCycle(currentDutyCycle + MAIN_ROTOR_STEP);
-	} else if (_avgAltitude > _desiredAltitude) {
-		setMainRotorDutyCycle(currentDutyCycle - MAIN_ROTOR_STEP);
-	}
-}
-
-
-/**
  * Calls initialisation functions.
  */
 void initMain (void) {
 	initSysTick();
-	initRefPin();
 	initPins();
 	initAltitudeMonitoring();
 	initPWMchan();
@@ -225,59 +135,19 @@ int main (void) {
 	initMain();
 
 	while (1) {
-		// Background task: calculate the mean of the values in the
-		// altitude buffer.
+		// Calculate the mean of the values in the altitude buffer
 		calcAvgAltitude();
 
-		// Ignore outlying values. Frequently skipping this line indicates
-		// that recalibration of the min. and max. altitude is necessary.
-		if (_avgAltitude <= 100 && _avgAltitude >= 0) {
-			setDutyCycle();
-		}
+		// Check for button presses
+		checkButtons();
 
-		// Background task: check for button presses and change the
-		// current display mode.
-		if (checkBut(UP)) {
-			RIT128x96x4Clear();	// Clear the OLED display
-			switch (_currentDisplay) {
-			case ALTITUDE_DISPLAY:
-				_currentDisplay = STATUS_DISPLAY;
-				break;
-			case YAW_DISPLAY:
-				_currentDisplay = ALTITUDE_DISPLAY;
-				break;
-			default:
-				_currentDisplay = YAW_DISPLAY;
-				break;
-			}
-		}
-		if (checkBut(DOWN)) {
-			RIT128x96x4Clear();	// Clear the OLED display
-			switch (_currentDisplay) {
-			case ALTITUDE_DISPLAY:
-				_currentDisplay = YAW_DISPLAY;
-				break;
-			case YAW_DISPLAY:
-				_currentDisplay = STATUS_DISPLAY;
-				break;
-			default:
-				_currentDisplay = ALTITUDE_DISPLAY;
-				break;
-			}
-		}
+		// Adjust altitude and yaw to desired values
+		altitudeControl();
+		yawControl();
 
-		// Background task: Call the appropriate display function
-		// according to the current display mode.
-		switch (_currentDisplay) {
-		case YAW_DISPLAY:
-			displayYaw();
-			break;
-		case ALTITUDE_DISPLAY:
-			displayAltitude();
-			break;
-		default:
-			displayStatus(PWMPulseWidthGet(PWM_BASE, PWM_OUT_4),
-					PWMGenPeriodGet(PWM_BASE, PWM_GEN_2));
-		}
+		// Call the display functions
+		displayAltitude();
+		displayYaw();
+		displayPWMStatus(getDutyCycle(MAIN_ROTOR), getDutyCycle(TAIL_ROTOR));
 	}
 }
