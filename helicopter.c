@@ -5,13 +5,11 @@
 * Author: J. Shaw and M. Rattner
 **/
 #include "globals.h"
-#include "circBuf.h"
-#include "buttonSet.h"
-#include "button.h"
 #include "display.h"
 #include "altitude.h"
 #include "buttonCheck.h"
 #include "motorControl.h"
+#include "serialLink.h"
 
 #include "inc/hw_memmap.h"
 #include "inc/hw_types.h"
@@ -27,6 +25,7 @@
 #include "drivers/rit128x96x4.h"
 
 #include "stdlib.h"
+#include "stdio.h"
 
 /*
  * Constants
@@ -46,7 +45,7 @@ void SysTickIntHandler (void) {
 	ADCProcessorTrigger(ADC_BASE, 3);
 
 	// Check for button presses
-	updateButtons();
+	checkButtons();
 
 	// Read the GPIO pins
 	pinRead = GPIOPinRead(GPIO_PORTF_BASE, GPIO_PIN_5 | GPIO_PIN_7);
@@ -123,6 +122,7 @@ void initMain (void) {
 	initPWMchan();
 	initButtons();
 	initDisplay();
+	initConsole();
 
 	// Enable interrupts to the processor.
 	IntMasterEnable();
@@ -134,7 +134,16 @@ void initMain (void) {
 int main (void) {
 	initMain();
 
+	static unsigned int count = 0;
+	char string[50];
+
 	while (1) {
+		if (count % 1000 == 0) {
+			snprintf(string, 50, "Status status blah blah blah %d\r\n", count);
+			UARTSend(string);
+		}
+		count++;
+
 		// Calculate the mean of the values in the altitude buffer
 		calcAvgAltitude();
 
