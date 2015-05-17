@@ -23,12 +23,12 @@ void initDisplay (void) {
  * the ADC will be ~1-2 V. Decreasing voltage = increasing altitude.
  */
 void displayAltitude () {
-	char string[30];
+	char string[20];
 
 	if (_avgAltitude <= 100 && _avgAltitude >= 0) {
-		sprintf(string, "Altitude = %3d%%", _avgAltitude);
+		snprintf(string, 20, "Altitude: %3d%%  ", _avgAltitude);
 	} else {
-		sprintf(string, "Invalid altitude");
+		snprintf(string, 20, "Invalid altitude");
 	}
 	RIT128x96x4StringDraw(string, 4, 14, 15);
 }
@@ -38,9 +38,9 @@ void displayAltitude () {
  * position.
  */
 void displayYaw () {
-	char string[30];
+	char string[20];
 	int degrees = (_yaw + 50) / 100;
-	sprintf(string, "Yaw = %3d deg", degrees);
+	snprintf(string, 20, "Yaw: %4d deg", degrees);
 	RIT128x96x4StringDraw(string, 4, 34, 15);
 }
 
@@ -50,8 +50,10 @@ void displayYaw () {
  * @param tailDuty Duty cycle of the tail rotor
  */
 void displayPWMStatus (unsigned int mainDuty, unsigned int tailDuty) {
-	char string[30];
-	// TODO: Display tail rotor duty cycle as well
-	sprintf(string, "Main rotor: %3d%%", mainDuty);
-	RIT128x96x4StringDraw(string, 4, 54, 15);
+	char mainString[20];
+	char tailString[20];
+	snprintf(mainString, 20, "Main rotor: %3d%%", mainDuty);
+	snprintf(tailString, 20, "Tail rotor: %3d%%", tailDuty);
+	RIT128x96x4StringDraw(mainString, 4, 54, 15);
+	RIT128x96x4StringDraw(tailString, 4, 64, 15);
 }

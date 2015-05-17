@@ -7,6 +7,7 @@
 #include "globals.h"
 #include "display.h"
 #include "altitude.h"
+#include "buttonSet.h"
 #include "buttonCheck.h"
 #include "motorControl.h"
 #include "serialLink.h"
@@ -26,6 +27,7 @@
 
 #include "stdlib.h"
 #include "stdio.h"
+#include "string.h"
 
 /*
  * Constants
@@ -44,8 +46,8 @@ void SysTickIntHandler (void) {
 	// Trigger an ADC conversion
 	ADCProcessorTrigger(ADC_BASE, 3);
 
-	// Check for button presses
-	checkButtons();
+	// Update the status of the buttons
+	updateButtons();
 
 	// Read the GPIO pins
 	pinRead = GPIOPinRead(GPIO_PORTF_BASE, GPIO_PIN_5 | GPIO_PIN_7);
@@ -66,6 +68,48 @@ void SysTickIntHandler (void) {
 		}
 	}
 	prevA = yawA;
+}
+
+/**
+ * Construct a status string and send via UART0.
+ */
+void sendStatus () {
+	char string[160];
+	char* heliMode;
+
+	switch (_heliState) {
+	case HELI_OFF:
+		heliMode = "Landed";
+		break;
+	case HELI_STARTING:
+		heliMode = "Takeoff";
+		break;
+	case HELI_ON:
+		heliMode = "Flying";
+		break;
+	case HELI_STOPPING:
+		heliMode = "Landing";
+		break;
+	default:
+		heliMode = "Invalid";
+		break;
+	}
+
+	snprintf(string, 23, "Desired yaw: %d deg\r\n", _desiredYaw);
+	snprintf(string + strlen(string), 22, "Actual yaw: %d deg\r\n",
+			(_yaw + 50) / 100);
+	snprintf(string + strlen(string), 24, "Desired altitude: %d%%\r\n",
+			_desiredAltitude);
+	snprintf(string + strlen(string), 23, "Actual altitude: %d%%\r\n",
+			_avgAltitude);
+	snprintf(string + strlen(string), 18, "Main rotor: %d%%\r\n",
+			getDutyCycle(MAIN_ROTOR));
+	snprintf(string + strlen(string), 18, "Tail rotor: %d%%\r\n",
+			getDutyCycle(TAIL_ROTOR));
+	snprintf(string + strlen(string), 22, "Heli mode: %s\r\n\r\n",
+			heliMode);
+
+	UARTSend(string);
 }
 
 /**
@@ -135,19 +179,17 @@ int main (void) {
 	initMain();
 
 	static unsigned int count = 0;
-	char string[50];
 
 	while (1) {
-		if (count % 1000 == 0) {
-			snprintf(string, 50, "Status status blah blah blah %d\r\n", count);
-			UARTSend(string);
+		if (count % 500 == 0) {
+			sendStatus();
 		}
 		count++;
 
 		// Calculate the mean of the values in the altitude buffer
 		calcAvgAltitude();
 
-		// Check for button presses
+		// Check for button presses and perform associated actions
 		checkButtons();
 
 		// Adjust altitude and yaw to desired values
