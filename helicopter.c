@@ -10,6 +10,7 @@
 #include "button.h"
 #include "display.h"
 #include "altitude.h"
+#include "motorControl.h"
 
 #include "inc/hw_memmap.h"
 #include "inc/hw_types.h"
@@ -35,8 +36,12 @@
 // Number of degrees * 100 per slot on the yaw encoder
 #define YAW_DEG_STEP_100 160
 
+// Step of increase of the main rotor
+#define MAIN_ROTOR_STEP 2
+
 #define PWM_RATE_HZ 150
 #define PWM_DEF_DUTY 95 // Initial duty cycle
+
 
 /**
  * The interrupt handler called when the SysTick counter reaches 0.
@@ -106,7 +111,7 @@ void initPins (void) {
  */
 void initButtons (void) {
 	// Enable GPIO port B for the virtual buttons
-	SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOB);
+	SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOG);
 	// The button set being used is UP, DOWN, LEFT, RIGHT,
 	// SELECT, and RESET on the virtual port
 	initButSet(UP_B | DOWN_B | LEFT_B | RIGHT_B | SELECT_B | RESET_B,
@@ -179,6 +184,23 @@ void setDutyCycle () {
 	// Round the value instead of truncating when dividing by 100
 	PWMPulseWidthSet(PWM_BASE, PWM_OUT_4, (period * dutyCycle + 50) / 100);
 }
+
+/**
+ * Controls the altitude
+ *
+ */
+void altitudeControl () {
+	int currentPulseWidth = PWMPulseWidthGet(PWM_BASE, PWM_OUT_4);
+	int currentPeriod =  PWMGenPeriodGet(PWM_BASE, PWM_GEN_2);
+	int currentDutyCycle = (100 * currentPulseWidth + currentPeriod / 2) / currentPeriod;
+
+	if (_avgAltitude < _desiredAltitude) {
+		setMainRotorDutyCycle(currentDutyCycle + MAIN_ROTOR_STEP);
+	} else if (_avgAltitude > _desiredAltitude) {
+		setMainRotorDutyCycle(currentDutyCycle - MAIN_ROTOR_STEP);
+	}
+}
+
 
 /**
  * Calls initialisation functions.
