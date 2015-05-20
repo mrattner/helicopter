@@ -15,7 +15,7 @@
 #define MAIN_ROTOR PWM_OUT_1
 #define TAIL_ROTOR PWM_OUT_4
 #define PWM_RATE_HZ 150 // Frequency of the PWM generator
-#define PWM_INITIAL_DUTY 5 // Initial duty cycle
+#define PWM_INITIAL_DUTY 10 // Initial duty cycle
 
 /*
  * Static variables
