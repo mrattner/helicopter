@@ -15,7 +15,12 @@
 #define MAIN_ROTOR PWM_OUT_1
 #define TAIL_ROTOR PWM_OUT_4
 #define PWM_RATE_HZ 150 // Frequency of the PWM generator
-#define PWM_DEF_DUTY 3 // Initial duty cycle
+#define PWM_INITIAL_DUTY 5 // Initial duty cycle
+
+/*
+ * Static variables
+ */
+static int initialised = 0;
 
 /**
  * Initialise the PWM generators.
@@ -23,6 +28,16 @@
  * PWM generator 2: Controls PWM4 (Tail rotor)
  */
 void initPWMchan (void);
+
+/**
+ * Turn off the motors.
+ */
+void powerDown (void);
+
+/**
+ * Turns on the motors and sets duty cycle of both to the initial amount.
+ */
+void powerUp (void);
 
 /**
  * Sets the PWM duty cycle to be the duty cycle %. Has built in

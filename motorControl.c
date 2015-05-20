@@ -30,6 +30,9 @@
  * PWM generator 2: Controls PWM4 (Tail rotor)
  */
 void initPWMchan (void) {
+	if (initialised) {
+		return;
+	}
 	unsigned long period;
 
 	SysCtlPeripheralEnable(SYSCTL_PERIPH_PWM);
@@ -48,10 +51,10 @@ void initPWMchan (void) {
 	period = SysCtlClockGet() / 4 / PWM_RATE_HZ;
 	// Generator 0
 	PWMGenPeriodSet(PWM_BASE, PWM_GEN_0, period);
-	PWMPulseWidthSet(PWM_BASE, PWM_OUT_1, period * PWM_DEF_DUTY / 100);
+	PWMPulseWidthSet(PWM_BASE, PWM_OUT_1, period * PWM_INITIAL_DUTY / 100);
 	// Generator 2
 	PWMGenPeriodSet(PWM_BASE, PWM_GEN_2, period);
-	PWMPulseWidthSet(PWM_BASE, PWM_OUT_4, period * PWM_DEF_DUTY / 100);
+	PWMPulseWidthSet(PWM_BASE, PWM_OUT_4, period * PWM_INITIAL_DUTY / 100);
 
 	// Enable the PWM output signals.
 	PWMOutputState(PWM_BASE, PWM_OUT_1_BIT | PWM_OUT_4_BIT, true);
@@ -59,6 +62,28 @@ void initPWMchan (void) {
 	// Enable the PWM generators.
 	PWMGenEnable(PWM_BASE, PWM_GEN_0);
 	PWMGenEnable(PWM_BASE, PWM_GEN_2);
+
+	initialised = 1;
+	SysCtlDelay(2);
+}
+
+/**
+ * Turn off the motors.
+ */
+void powerDown (void) {
+	SysCtlPeripheralDisable(SYSCTL_PERIPH_PWM);
+}
+
+/**
+ * Turns on the motors and sets duty cycle of both to the initial amount.
+ */
+void powerUp (void) {
+	if (!initialised) {
+		initPWMchan();
+	}
+
+	setDutyCycle(MAIN_ROTOR, PWM_INITIAL_DUTY);
+	setDutyCycle(TAIL_ROTOR, PWM_INITIAL_DUTY);
 }
 
 /**
@@ -68,6 +93,9 @@ void initPWMchan (void) {
  * @param dutyCycle The duty cycle %
  */
 void setDutyCycle (unsigned long rotor, unsigned int dutyCycle) {
+	if (!initialised) {
+		return;
+	}
 	unsigned long period = (rotor == MAIN_ROTOR) ?
 				PWMGenPeriodGet(PWM_BASE, PWM_GEN_0) // main rotor PWM
 				: PWMGenPeriodGet(PWM_BASE, PWM_GEN_2); // tail rotor PWM
@@ -80,7 +108,7 @@ void setDutyCycle (unsigned long rotor, unsigned int dutyCycle) {
 
 	// Set the pulse width according to the desired duty cycle.
 	// Round the value instead of truncating when dividing by 100
-	PWMPulseWidthSet(PWM_BASE, rotor, (period * PWM_DEF_DUTY + 50) / 100);
+	PWMPulseWidthSet(PWM_BASE, rotor, (period * PWM_INITIAL_DUTY + 50) / 100);
 }
 
 /**
@@ -89,6 +117,9 @@ void setDutyCycle (unsigned long rotor, unsigned int dutyCycle) {
  * @return The current duty cycle % of that rotor's PWM channel
  */
 unsigned int getDutyCycle (unsigned long rotor) {
+	if (!initialised) {
+		return;
+	}
 	unsigned long currentPulseWidth = PWMPulseWidthGet(PWM_BASE, rotor);
 	unsigned long currentPeriod = (rotor == MAIN_ROTOR) ?
 			PWMGenPeriodGet(PWM_BASE, PWM_GEN_0) // main rotor PWM
@@ -100,6 +131,9 @@ unsigned int getDutyCycle (unsigned long rotor) {
  * Adjusts the PWM duty cycle of the main rotor to control the altitude.
  */
 void altitudeControl (void) {
+	if (!initialised) {
+			return;
+	}
 	unsigned int currentDutyCycle = getDutyCycle(MAIN_ROTOR);
 
 	if (_avgAltitude < _desiredAltitude) {
@@ -113,6 +147,9 @@ void altitudeControl (void) {
  * Adjusts the PWM duty cycle of the tail rotor to control the yaw.
  */
 void yawControl (void) {
+	if (!initialised) {
+		return;
+	}
 	unsigned int currentDutyCycle = getDutyCycle(TAIL_ROTOR);
 
 	if (_yaw < _desiredYaw) {

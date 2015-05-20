@@ -11,6 +11,7 @@
 #include "buttonCheck.h"
 #include "motorControl.h"
 #include "serialLink.h"
+#include "pid.h"
 
 #include "inc/hw_memmap.h"
 #include "inc/hw_types.h"
@@ -160,13 +161,21 @@ void initSysTick (void) {
  * Calls initialisation functions.
  */
 void initMain (void) {
+	SysCtlDelay(33);
+	SysCtlPeripheralReset(SYSCTL_PERIPH_PWM);
+	SysCtlPeripheralReset(SYSCTL_PERIPH_GPIOD);
+	SysCtlPeripheralReset(SYSCTL_PERIPH_GPIOB);
+	SysCtlPeripheralReset(SYSCTL_PERIPH_GPIOF);
+	SysCtlPeripheralReset(SYSCTL_PERIPH_ADC0);
+	SysCtlDelay(33);
 	initSysTick();
 	initPins();
-	initAltitudeMonitoring();
 	initPWMchan();
+	initAltitudeMonitoring();
 	initButtons();
 	initDisplay();
 	initConsole();
+	SysCtlDelay(33);
 
 	// Enable interrupts to the processor.
 	IntMasterEnable();
@@ -178,27 +187,56 @@ void initMain (void) {
 int main (void) {
 	initMain();
 
+//	pid_state_t pidMainRotor;
+//	initPid(&pidMainRotor);
+
 	static unsigned int count = 0;
+//	char string[50];
+//	int toggle = 0;
 
 	while (1) {
-		if (count % 500 == 0) {
-			sendStatus();
+
+//		pidMain = pidUpdate(&pidMainRotor, _avgAltitude - _desiredAltitude, 10, 5, 2, SysTickPeriodGet());
+
+		if (_heliState == HELI_OFF) {
+			powerUp();
+			_heliState = HELI_ON;
+		}
+
+		if (_heliState == HELI_STOPPING) {
+			_desiredAltitude = 0;
+			if (_avgAltitude < 2) {
+				powerDown();
+				_heliState = HELI_OFF;
+			}
+		}
+
+
+		if (count % 100 == 0) {
+			//snprintf(string, 50, "pidMain %f\r\n", pidMain);
+			//UARTSend(string);
+			//sendStatus();
+//			snprintf(string, 50, "Status = %d\n", _heliState);
+//			UARTSend(string);
 		}
 		count++;
 
 		// Calculate the mean of the values in the altitude buffer
-		calcAvgAltitude();
+//		calcAvgAltitude();
 
 		// Check for button presses and perform associated actions
-		checkButtons();
+		//checkButtons();
 
 		// Adjust altitude and yaw to desired values
-		altitudeControl();
-		yawControl();
+		if (_heliState != HELI_OFF) {
+			//altitudeControl();
+			//yawControl();
+		}
+
 
 		// Call the display functions
-		displayAltitude();
-		displayYaw();
-		displayPWMStatus(getDutyCycle(MAIN_ROTOR), getDutyCycle(TAIL_ROTOR));
+		//displayAltitude();
+		//displayYaw();
+		//displayPWMStatus(getDutyCycle(MAIN_ROTOR), getDutyCycle(TAIL_ROTOR));
 	}
 }
