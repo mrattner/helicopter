@@ -152,25 +152,31 @@ void updateButtons (void) {
 
 		switch (buttonsArray[i].iState) {
 		case BUT_IN:
-			if (pinVal) {
-				// Button is not being pressed
+			if (pinVal && ulPort == PHYSICAL_PORT) {
+				// Button is not being pressed (physical)
 				if (buttonsArray[i].uiCnt >= sysTickmHz * BUT_HOLDOFF) {
 					buttonsArray[i].iState = BUT_OUT;
 					buttonsArray[i].uiCnt = 0;
 				} else {
 					buttonsArray[i].uiCnt += 1;
 				}
+			} else if (pinVal) {
+				// Button is not being pressed (virtual)
+				buttonsArray[i].iState = BUT_OUT;
 			}
 			break;
 		case BUT_OUT:
-			if (!pinVal) {
-				// Button is being pressed
+			if (!pinVal && ulPort == PHYSICAL_PORT) {
+				// Button is being pressed (physical)
 				if (buttonsArray[i].uiCnt >= sysTickmHz * BUT_DETECT) {
 					buttonsArray[i].iState = BUT_PUSHED;
 					buttonsArray[i].uiCnt = 0;
 				} else {
 					buttonsArray[i].uiCnt += 1;
 				}
+			} else if (!pinVal) {
+				// Button is being pressed (virtual)
+				buttonsArray[i].iState = BUT_PUSHED;
 			}
 			break;
 		default:
