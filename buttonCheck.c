@@ -37,10 +37,10 @@ void initButtons (void) {
  */
 void checkButtons (void) {
 	if (checkBut(UP)) {
-		_desiredAltitude = _avgAltitude + ALTITUDE_STEP;
+		_desiredAltitude += ALTITUDE_STEP;
 	}
 	else if (checkBut(DOWN)) {
-		_desiredAltitude = _avgAltitude - ALTITUDE_STEP;
+		_desiredAltitude -= ALTITUDE_STEP;
 	}
 	else if (checkBut(LEFT)) {
 		_desiredYaw = _yaw - YAW_STEP;
