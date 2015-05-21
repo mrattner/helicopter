@@ -46,8 +46,8 @@ void ADCIntHandler (void) {
 	if (minAltitude == -1) {
 		minAltitude = ulValue;
 		// 1023 is the max quantisation value (3.0 V). Divide
-		// this by 3 to get the quantisation value for 1.0 V
-		maxAltitude = ulValue - (1023 / 3);
+		// this by 3/0.8 (3.75) to get the quantisation value for 0.8 V
+		maxAltitude = ulValue - ((102300 + 375/2) / 375);
 	}
 }
 
