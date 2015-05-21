@@ -16,13 +16,6 @@
 #include "driverlib/pwm.h"
 #include "driverlib/gpio.h"
 
-/*
- * Constants
- */
-// How much to adjust the rotors' duty cycle
-#define MAIN_ROTOR_STEP 1
-#define TAIL_ROTOR_STEP 1
-
 /**
  * Initialise the PWM generators. Should be called after the associated
  * GPIO pins have been enabled for output.
@@ -51,10 +44,10 @@ void initPWMchan (void) {
 	period = SysCtlClockGet() / 4 / PWM_RATE_HZ;
 	// Generator 0
 	PWMGenPeriodSet(PWM_BASE, PWM_GEN_0, period);
-	PWMPulseWidthSet(PWM_BASE, PWM_OUT_1, period * PWM_INITIAL_DUTY / 100);
+	PWMPulseWidthSet(PWM_BASE, PWM_OUT_1, period * MAIN_INITIAL_DUTY100 / 10000);
 	// Generator 2
 	PWMGenPeriodSet(PWM_BASE, PWM_GEN_2, period);
-	PWMPulseWidthSet(PWM_BASE, PWM_OUT_4, period * PWM_INITIAL_DUTY / 100);
+	PWMPulseWidthSet(PWM_BASE, PWM_OUT_4, period * TAIL_INITIAL_DUTY100 / 10000);
 
 	// Enable the PWM output signals.
 	PWMOutputState(PWM_BASE, PWM_OUT_1_BIT | PWM_OUT_4_BIT, false);
@@ -64,17 +57,18 @@ void initPWMchan (void) {
 	PWMGenEnable(PWM_BASE, PWM_GEN_2);
 
 	initialised = 1;
-	SysCtlDelay(2);
 }
 
 /**
- * Turn off the motors.
+ * If the helicopter is at a low enough altitude, turn off the motors.
  */
 void powerDown (void) {
-	PWMOutputState(PWM_BASE, PWM_OUT_1_BIT | PWM_OUT_4_BIT, false);
-//	PWMGenDisable(PWM_BASE, PWM_GEN_0);
-//	PWMGenDisable(PWM_BASE, PWM_GEN_2);
-	//SysCtlPeripheralDisable(SYSCTL_PERIPH_PWM);
+	_desiredAltitude = 0;
+
+	if (_avgAltitude < 2) {
+		PWMOutputState(PWM_BASE, PWM_OUT_1_BIT | PWM_OUT_4_BIT, false);
+		_heliState = HELI_OFF;
+	}
 }
 
 /**
@@ -82,24 +76,22 @@ void powerDown (void) {
  */
 void powerUp (void) {
 	if (!initialised) {
-		initPWMchan();
+		return;
 	}
 	PWMOutputState(PWM_BASE, PWM_OUT_1_BIT | PWM_OUT_4_BIT, true);
-//	PWMGenEnable(PWM_BASE, PWM_GEN_0);
-//	PWMGenEnable(PWM_BASE, PWM_GEN_2);
-//	SysCtlPeripheralEnable(SYSCTL_PERIPH_PWM);
+	setDutyCycle100(MAIN_ROTOR, MAIN_INITIAL_DUTY100);
+	setDutyCycle100(TAIL_ROTOR, TAIL_INITIAL_DUTY100);
 
-	setDutyCycle(MAIN_ROTOR, PWM_INITIAL_DUTY);
-	setDutyCycle(TAIL_ROTOR, PWM_INITIAL_DUTY);
+	_heliState = HELI_ON;
 }
 
 /**
  * Sets the PWM duty cycle to be the duty cycle %. Has built in
  * safety at 5% or 95% if dutyCycle set above 95% or below 5%.
  * @param rotor Either MAIN_ROTOR or TAIL_ROTOR
- * @param dutyCycle The duty cycle %
+ * @param dutyCycle100 The duty cycle % times 100
  */
-void setDutyCycle (unsigned long rotor, unsigned int dutyCycle) {
+void setDutyCycle100 (unsigned long rotor, unsigned int dutyCycle100) {
 	if (!initialised) {
 		return;
 	}
@@ -107,36 +99,29 @@ void setDutyCycle (unsigned long rotor, unsigned int dutyCycle) {
 				PWMGenPeriodGet(PWM_BASE, PWM_GEN_0) // main rotor PWM
 				: PWMGenPeriodGet(PWM_BASE, PWM_GEN_2); // tail rotor PWM
 
-	if (dutyCycle < 5) {
-		dutyCycle = 5;
-	} else if (dutyCycle > 95) {
-		dutyCycle = 95;
+	if (dutyCycle100 < 500) {
+		dutyCycle100 = 500;
+	} else if (dutyCycle100 > 9500) {
+		dutyCycle100 = 9500;
 	}
-	unsigned long long calculation = (period * dutyCycle + 50) / 100;
+	unsigned long newPulseWidth = (dutyCycle100 * period + 5000) / 10000;
 
-	// Set the pulse width according to the desired duty cycle.
-	// Round the value instead of truncating when dividing by 100
-	PWMPulseWidthSet(PWM_BASE, rotor, calculation);
+	// Set the pulse width according to the desired duty cycle
+	PWMPulseWidthSet(PWM_BASE, rotor, newPulseWidth);
 }
 
 /**
  * Get the current duty cycle of the specified rotor PWM.
  * @param rotor Either MAIN_ROTOR or TAIL_ROTOR
- * @return The current duty cycle % of that rotor's PWM channel. 1000
- * if PWM hasn't been initialised.
+ * @return The current duty cycle % of that rotor's PWM channel, * 100
  */
-unsigned int getDutyCycle (unsigned long rotor) {
-	if (!initialised) {
-		return 1000;
-	}
+unsigned int getDutyCycle100 (unsigned long rotor) {
 	unsigned long currentPulseWidth = PWMPulseWidthGet(PWM_BASE, rotor);
 	unsigned long currentPeriod = (rotor == MAIN_ROTOR) ?
 			PWMGenPeriodGet(PWM_BASE, PWM_GEN_0) // main rotor PWM
 			: PWMGenPeriodGet(PWM_BASE, PWM_GEN_2); // tail rotor PWM
 
-	unsigned long long calculation = (100 * currentPulseWidth + currentPeriod / 2) / currentPeriod;
-
-	return calculation;
+	return (10000 * currentPulseWidth + currentPeriod / 2) / currentPeriod;
 }
 
 /**
@@ -146,12 +131,12 @@ void altitudeControl (void) {
 	if (!initialised) {
 		return;
 	}
-	unsigned int currentDutyCycle = getDutyCycle(MAIN_ROTOR);
+	unsigned int currentDutyCycle100 = getDutyCycle100(MAIN_ROTOR);
 
 	if (_avgAltitude < _desiredAltitude) {
-		setDutyCycle(MAIN_ROTOR, currentDutyCycle + MAIN_ROTOR_STEP);
+		setDutyCycle100(MAIN_ROTOR, currentDutyCycle100 + 50);
 	} else if (_avgAltitude > _desiredAltitude) {
-		setDutyCycle(MAIN_ROTOR, currentDutyCycle - MAIN_ROTOR_STEP);
+		setDutyCycle100(MAIN_ROTOR, currentDutyCycle100 - 50);
 	}
 }
 
@@ -162,11 +147,11 @@ void yawControl (void) {
 	if (!initialised) {
 		return;
 	}
-	unsigned int currentDutyCycle = getDutyCycle(TAIL_ROTOR);
+	unsigned int currentDutyCycle100 = getDutyCycle100(TAIL_ROTOR);
 
-	if (_yaw < _desiredYaw) {
-		setDutyCycle(TAIL_ROTOR, currentDutyCycle + TAIL_ROTOR_STEP);
-	} else if (_yaw > _desiredYaw) {
-		setDutyCycle(TAIL_ROTOR, currentDutyCycle - TAIL_ROTOR_STEP);
+	if (_yaw < _desiredYaw * 100) {
+		setDutyCycle100(TAIL_ROTOR, currentDutyCycle100 + 50);
+	} else if (_yaw > _desiredYaw * 100) {
+		setDutyCycle100(TAIL_ROTOR, currentDutyCycle100 - 50);
 	}
 }

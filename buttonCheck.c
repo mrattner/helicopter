@@ -43,10 +43,10 @@ void checkButtons (void) {
 		_desiredAltitude -= ALTITUDE_STEP;
 	}
 	else if (checkBut(LEFT)) {
-		_desiredYaw = _yaw - YAW_STEP;
+		_desiredYaw = _yaw - YAW_STEP_DEG;
 	}
 	else if (checkBut(RIGHT)) {
-		_desiredYaw = _yaw + YAW_STEP;
+		_desiredYaw = _yaw + YAW_STEP_DEG;
 	}
 	else if (checkBut(SELECT)) {
 		switch (_heliState) {

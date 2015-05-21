@@ -52,14 +52,8 @@ void displayYaw () {
 void displayPWMStatus (unsigned int mainDuty, unsigned int tailDuty) {
 	char mainString[20];
 	char tailString[20];
-	if (mainDuty == 1000 || tailDuty == 1000) {
-		snprintf(mainString, 20, "PWM uninitialised");
-		RIT128x96x4StringDraw(mainString, 4, 54, 15);
-	}
-	else {
-		snprintf(mainString, 20, "Main rotor: %3d%%", mainDuty);
-		snprintf(tailString, 20, "Tail rotor: %3d%%", tailDuty);
-		RIT128x96x4StringDraw(mainString, 4, 54, 15);
-		RIT128x96x4StringDraw(tailString, 4, 64, 15);
-	}
+	snprintf(mainString, 20, "Main rotor: %3d%%", mainDuty);
+	snprintf(tailString, 20, "Tail rotor: %3d%%", tailDuty);
+	RIT128x96x4StringDraw(mainString, 4, 54, 15);
+	RIT128x96x4StringDraw(tailString, 4, 64, 15);
 }

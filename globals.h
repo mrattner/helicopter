@@ -15,7 +15,7 @@
 // Percent the altitude should change when buttons are pressed
 #define ALTITUDE_STEP 10
 // Degrees the yaw should change when buttons are pressed
-#define YAW_STEP 15
+#define YAW_STEP_DEG 15
 
 enum heli_state { HELI_OFF = 0, HELI_STARTING, HELI_ON, HELI_STOPPING };
 

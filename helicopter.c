@@ -34,7 +34,7 @@
  * Constants
  */
 // Number of degrees * 100 per slot on the yaw encoder
-#define YAW_DEG_STEP_100 160
+#define YAW_DEG_STEP_100 160 // TODO: Should this be 320?
 
 /**
  * The interrupt handler called when the SysTick counter reaches 0.
@@ -43,6 +43,7 @@ void SysTickIntHandler (void) {
 	static int prevA = -1;
 	unsigned long pinRead;
 	unsigned int yawA, yawB;
+	int yawStep = (YAW_DEG_STEP_100 + 50) / 100;
 
 	// Trigger an ADC conversion
 	ADCProcessorTrigger(ADC_BASE, 3);
@@ -57,15 +58,15 @@ void SysTickIntHandler (void) {
 
 	if (!prevA && yawA) {
 		if (yawB) {
-			_yaw += YAW_DEG_STEP_100;
+			_yaw += yawStep;
 		} else {
-			_yaw -= YAW_DEG_STEP_100;
+			_yaw -= yawStep;
 		}
 	} else if (prevA && !yawA) {
 		if (yawB) {
-			_yaw -= YAW_DEG_STEP_100;
+			_yaw -= yawStep;
 		} else {
-			_yaw += YAW_DEG_STEP_100;
+			_yaw += yawStep;
 		}
 	}
 	prevA = yawA;
@@ -104,9 +105,9 @@ void sendStatus () {
 	snprintf(string + strlen(string), 23, "Actual altitude: %d%%\r\n",
 			_avgAltitude);
 	snprintf(string + strlen(string), 18, "Main rotor: %d%%\r\n",
-			getDutyCycle(MAIN_ROTOR));
+			getDutyCycle100(MAIN_ROTOR) / 100);
 	snprintf(string + strlen(string), 18, "Tail rotor: %d%%\r\n",
-			getDutyCycle(TAIL_ROTOR));
+			getDutyCycle100(TAIL_ROTOR) / 100);
 	snprintf(string + strlen(string), 22, "Heli mode: %s\r\n\r\n",
 			heliMode);
 
@@ -166,7 +167,8 @@ void initMain (void) {
 	SysCtlPeripheralReset(SYSCTL_PERIPH_GPIOB);
 	SysCtlPeripheralReset(SYSCTL_PERIPH_GPIOF);
 	SysCtlPeripheralReset(SYSCTL_PERIPH_ADC0);
-	SysCtlDelay(33);
+	SysCtlDelay(2);
+
 	initSysTick();
 	initPins();
 	initPWMchan();
@@ -174,8 +176,7 @@ void initMain (void) {
 	initButtons();
 	//initDisplay();
 	//initConsole();
-
-//	SysCtlDelay(33);
+	SysCtlDelay(2);
 
 
 	// Enable interrupts to the processor.
@@ -188,27 +189,15 @@ void initMain (void) {
 int main (void) {
 	initMain();
 
-
-//	pid_state_t pidMainRotor;
-//	initPid(&pidMainRotor);
-
 	static unsigned int count = 0;
-//	char string[50];
-//	int toggle = 0;
 
 	while (1) {
-
-//		pidMain = pidUpdate(&pidMainRotor, _avgAltitude - _desiredAltitude, 10, 5, 2, SysTickPeriodGet());
-
 		if (_heliState == HELI_STARTING) {
 			powerUp();
-			_heliState = HELI_ON;
 		}
 
 		if (_heliState == HELI_STOPPING) {
-			_desiredAltitude = 0;
 			powerDown();
-			_heliState = HELI_OFF;
 		}
 
 		// Calculate the mean of the values in the altitude buffer
@@ -218,18 +207,19 @@ int main (void) {
 		checkButtons();
 
 		// Adjust altitude and yaw to desired values
-		if (_heliState != HELI_OFF && count % 200 == 0) {
+		if (_heliState != HELI_OFF && count % 1000 == 0) {
 			altitudeControl();
 			count = 0;
 		}
-		if (_heliState != HELI_OFF && count % 100 == 0) {
+		if (_heliState != HELI_OFF && count % 2000 == 0) {
 			yawControl();
 		}
 		count ++;
 
+
 		// Call the display functions
 //		displayAltitude();
 //		displayYaw();
-//		displayPWMStatus(getDutyCycle(MAIN_ROTOR), getDutyCycle(TAIL_ROTOR));
+//		displayPWMStatus(getDutyCycle100(MAIN_ROTOR), getDutyCycle100(TAIL_ROTOR));
 	}
 }
