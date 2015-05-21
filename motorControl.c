@@ -20,8 +20,8 @@
  * Constants
  */
 // How much to adjust the rotors' duty cycle
-#define MAIN_ROTOR_STEP 2
-#define TAIL_ROTOR_STEP 2
+#define MAIN_ROTOR_STEP 1
+#define TAIL_ROTOR_STEP 1
 
 /**
  * Initialise the PWM generators. Should be called after the associated
@@ -57,7 +57,7 @@ void initPWMchan (void) {
 	PWMPulseWidthSet(PWM_BASE, PWM_OUT_4, period * PWM_INITIAL_DUTY / 100);
 
 	// Enable the PWM output signals.
-	PWMOutputState(PWM_BASE, PWM_OUT_1_BIT | PWM_OUT_4_BIT, true);
+	//PWMOutputState(PWM_BASE, PWM_OUT_1_BIT | PWM_OUT_4_BIT, true);
 
 	// Enable the PWM generators.
 	PWMGenEnable(PWM_BASE, PWM_GEN_0);
@@ -71,7 +71,10 @@ void initPWMchan (void) {
  * Turn off the motors.
  */
 void powerDown (void) {
-	SysCtlPeripheralDisable(SYSCTL_PERIPH_PWM);
+	PWMOutputState(PWM_BASE, PWM_OUT_1_BIT | PWM_OUT_4_BIT, false);
+//	PWMGenDisable(PWM_BASE, PWM_GEN_0);
+//	PWMGenDisable(PWM_BASE, PWM_GEN_2);
+	//SysCtlPeripheralDisable(SYSCTL_PERIPH_PWM);
 }
 
 /**
@@ -81,6 +84,10 @@ void powerUp (void) {
 	if (!initialised) {
 		initPWMchan();
 	}
+	PWMOutputState(PWM_BASE, PWM_OUT_1_BIT | PWM_OUT_4_BIT, true);
+//	PWMGenEnable(PWM_BASE, PWM_GEN_0);
+//	PWMGenEnable(PWM_BASE, PWM_GEN_2);
+//	SysCtlPeripheralEnable(SYSCTL_PERIPH_PWM);
 
 	setDutyCycle(MAIN_ROTOR, PWM_INITIAL_DUTY);
 	setDutyCycle(TAIL_ROTOR, PWM_INITIAL_DUTY);
@@ -105,10 +112,11 @@ void setDutyCycle (unsigned long rotor, unsigned int dutyCycle) {
 	} else if (dutyCycle > 95) {
 		dutyCycle = 95;
 	}
+	unsigned long long calculation = (period * dutyCycle + 50) / 100;
 
 	// Set the pulse width according to the desired duty cycle.
 	// Round the value instead of truncating when dividing by 100
-	PWMPulseWidthSet(PWM_BASE, rotor, (period * PWM_INITIAL_DUTY + 50) / 100);
+	PWMPulseWidthSet(PWM_BASE, rotor, calculation);
 }
 
 /**
@@ -124,7 +132,10 @@ unsigned int getDutyCycle (unsigned long rotor) {
 	unsigned long currentPeriod = (rotor == MAIN_ROTOR) ?
 			PWMGenPeriodGet(PWM_BASE, PWM_GEN_0) // main rotor PWM
 			: PWMGenPeriodGet(PWM_BASE, PWM_GEN_2); // tail rotor PWM
-	return (100 * currentPulseWidth + currentPeriod / 2) / currentPeriod;
+
+	unsigned long long calculation = (100 * currentPulseWidth + currentPeriod / 2) / currentPeriod;
+
+	return calculation;
 }
 
 /**

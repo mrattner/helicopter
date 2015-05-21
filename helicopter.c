@@ -161,7 +161,6 @@ void initSysTick (void) {
  * Calls initialisation functions.
  */
 void initMain (void) {
-	SysCtlDelay(33);
 	SysCtlPeripheralReset(SYSCTL_PERIPH_PWM);
 	SysCtlPeripheralReset(SYSCTL_PERIPH_GPIOD);
 	SysCtlPeripheralReset(SYSCTL_PERIPH_GPIOB);
@@ -173,9 +172,11 @@ void initMain (void) {
 	initPWMchan();
 	initAltitudeMonitoring();
 	initButtons();
-	initDisplay();
-	initConsole();
-	SysCtlDelay(33);
+	//initDisplay();
+	//initConsole();
+
+//	SysCtlDelay(33);
+
 
 	// Enable interrupts to the processor.
 	IntMasterEnable();
@@ -186,6 +187,7 @@ void initMain (void) {
  */
 int main (void) {
 	initMain();
+
 
 //	pid_state_t pidMainRotor;
 //	initPid(&pidMainRotor);
@@ -198,45 +200,36 @@ int main (void) {
 
 //		pidMain = pidUpdate(&pidMainRotor, _avgAltitude - _desiredAltitude, 10, 5, 2, SysTickPeriodGet());
 
-		if (_heliState == HELI_OFF) {
+		if (_heliState == HELI_STARTING) {
 			powerUp();
 			_heliState = HELI_ON;
 		}
 
 		if (_heliState == HELI_STOPPING) {
 			_desiredAltitude = 0;
-			if (_avgAltitude < 2) {
-				powerDown();
-				_heliState = HELI_OFF;
-			}
+			powerDown();
+			_heliState = HELI_OFF;
 		}
-
-
-		if (count % 100 == 0) {
-			//snprintf(string, 50, "pidMain %f\r\n", pidMain);
-			//UARTSend(string);
-			//sendStatus();
-//			snprintf(string, 50, "Status = %d\n", _heliState);
-//			UARTSend(string);
-		}
-		count++;
 
 		// Calculate the mean of the values in the altitude buffer
-//		calcAvgAltitude();
+		calcAvgAltitude();
 
 		// Check for button presses and perform associated actions
-		//checkButtons();
+		checkButtons();
 
 		// Adjust altitude and yaw to desired values
-		if (_heliState != HELI_OFF) {
-			//altitudeControl();
-			//yawControl();
+		if (_heliState != HELI_OFF && count % 200 == 0) {
+			altitudeControl();
+			count = 0;
 		}
-
+		if (_heliState != HELI_OFF && count % 100 == 0) {
+			yawControl();
+		}
+		count ++;
 
 		// Call the display functions
-		//displayAltitude();
-		//displayYaw();
-		//displayPWMStatus(getDutyCycle(MAIN_ROTOR), getDutyCycle(TAIL_ROTOR));
+//		displayAltitude();
+//		displayYaw();
+//		displayPWMStatus(getDutyCycle(MAIN_ROTOR), getDutyCycle(TAIL_ROTOR));
 	}
 }
