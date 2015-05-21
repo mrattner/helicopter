@@ -122,11 +122,12 @@ void setDutyCycle (unsigned long rotor, unsigned int dutyCycle) {
 /**
  * Get the current duty cycle of the specified rotor PWM.
  * @param rotor Either MAIN_ROTOR or TAIL_ROTOR
- * @return The current duty cycle % of that rotor's PWM channel
+ * @return The current duty cycle % of that rotor's PWM channel. 1000
+ * if PWM hasn't been initialised.
  */
 unsigned int getDutyCycle (unsigned long rotor) {
 	if (!initialised) {
-		return;
+		return 1000;
 	}
 	unsigned long currentPulseWidth = PWMPulseWidthGet(PWM_BASE, rotor);
 	unsigned long currentPeriod = (rotor == MAIN_ROTOR) ?
@@ -143,7 +144,7 @@ unsigned int getDutyCycle (unsigned long rotor) {
  */
 void altitudeControl (void) {
 	if (!initialised) {
-			return;
+		return;
 	}
 	unsigned int currentDutyCycle = getDutyCycle(MAIN_ROTOR);
 
