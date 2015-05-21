@@ -115,6 +115,49 @@ void initSysTick (void) {
 }
 
 /**
+ * Construct a status string and send via UART0.
+ */
+void sendStatus (void) {
+	char string[160];
+	char* heliMode;
+
+	switch (_heliState) {
+	case HELI_OFF:
+		heliMode = "Landed";
+		break;
+	case HELI_STARTING:
+		heliMode = "Takeoff";
+		break;
+	case HELI_ON:
+		heliMode = "Flying";
+		break;
+	case HELI_STOPPING:
+		heliMode = "Landing";
+		break;
+	default:
+		heliMode = "Invalid";
+		break;
+	}
+
+	snprintf(string, 23, "Desired yaw: %d deg\r\n",
+			(_desiredYaw100 + 50) / 100);
+	snprintf(string + strlen(string), 22, "Actual yaw: %d deg\r\n",
+			(_yaw100 + 50) / 100);
+	snprintf(string + strlen(string), 24, "Desired altitude: %d%%\r\n",
+			_desiredAltitude);
+	snprintf(string + strlen(string), 23, "Actual altitude: %d%%\r\n",
+			_avgAltitude);
+	snprintf(string + strlen(string), 18, "Main rotor: %d%%\r\n",
+			(getDutyCycle100(MAIN_ROTOR) + 50) / 100);
+	snprintf(string + strlen(string), 18, "Tail rotor: %d%%\r\n",
+			(getDutyCycle100(TAIL_ROTOR) + 50) / 100);
+	snprintf(string + strlen(string), 22, "Heli mode: %s\r\n\r\n",
+			heliMode);
+
+	UARTSend(string);
+}
+
+/**
  * Calls initialisation functions.
  */
 void initMain (void) {
