@@ -206,9 +206,9 @@ int main (void) {
 		checkButtons();
 
 		// Adjust altitude and yaw to desired values
-		if (_heliState != HELI_OFF && count % 1000 == 0) {
+		if (_heliState != HELI_OFF && count % 4000 == 0) {
 			altitudeControl();
-			count = 0;
+			//count = 0;
 		}
 		if (_heliState != HELI_OFF && count % 2000 == 0) {
 			yawControl();
