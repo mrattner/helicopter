@@ -132,11 +132,12 @@ void altitudeControl (void) {
 		return;
 	}
 	unsigned int currentDutyCycle100 = getDutyCycle100(MAIN_ROTOR);
-	if (_avgAltitude < _desiredAltitude) {
-		setDutyCycle100(MAIN_ROTOR, currentDutyCycle100 + 70);
-	} else if (_avgAltitude > _desiredAltitude) {
-		setDutyCycle100(MAIN_ROTOR, currentDutyCycle100 - 70);
-	}
+	int error = _desiredAltitude - _avgAltitude;
+
+	// Kp = 4
+	// TODO: If it fluctuates too much, decrease Kp.
+	// If it doesn't respond, increase Kp.
+	setDutyCycle100(MAIN_ROTOR, currentDutyCycle100 + error * 4);
 }
 
 /**
@@ -146,7 +147,11 @@ void yawControl (void) {
 	if (!initialised) {
 		return;
 	}
-	int currentDutyCycle100 = getDutyCycle100(TAIL_ROTOR);
+	unsigned int currentDutyCycle100 = getDutyCycle100(TAIL_ROTOR);
+	int error = _desiredYaw100 - _yaw100;
 
-	setDutyCycle100(TAIL_ROTOR, (_desiredYaw100 - _yaw100) * 1);
+	// Kp = 1/2
+	// TODO: If it fluctuates too much, decrease Kp.
+	// If it doesn't respond, increase Kp.
+	setDutyCycle100(TAIL_ROTOR, currentDutyCycle100 + error / 2);
 }
