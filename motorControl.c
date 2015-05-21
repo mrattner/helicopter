@@ -132,11 +132,10 @@ void altitudeControl (void) {
 		return;
 	}
 	unsigned int currentDutyCycle100 = getDutyCycle100(MAIN_ROTOR);
-
 	if (_avgAltitude < _desiredAltitude) {
-		setDutyCycle100(MAIN_ROTOR, currentDutyCycle100 + 50);
+		setDutyCycle100(MAIN_ROTOR, currentDutyCycle100 + 70);
 	} else if (_avgAltitude > _desiredAltitude) {
-		setDutyCycle100(MAIN_ROTOR, currentDutyCycle100 - 50);
+		setDutyCycle100(MAIN_ROTOR, currentDutyCycle100 - 70);
 	}
 }
 
@@ -147,11 +146,7 @@ void yawControl (void) {
 	if (!initialised) {
 		return;
 	}
-	unsigned int currentDutyCycle100 = getDutyCycle100(TAIL_ROTOR);
+	int currentDutyCycle100 = getDutyCycle100(TAIL_ROTOR);
 
-	if (_yaw100 < _desiredYaw100) {
-		setDutyCycle100(TAIL_ROTOR, currentDutyCycle100 + 50);
-	} else if (_yaw100 > _desiredYaw100) {
-		setDutyCycle100(TAIL_ROTOR, currentDutyCycle100 - 50);
-	}
+	setDutyCycle100(TAIL_ROTOR, (_desiredYaw100 - _yaw100) * 1);
 }
