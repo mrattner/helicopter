@@ -11,7 +11,6 @@
 #include "buttonCheck.h"
 #include "motorControl.h"
 #include "serialLink.h"
-#include "pid.h"
 
 #include "inc/hw_memmap.h"
 #include "inc/hw_types.h"
@@ -43,7 +42,6 @@ void SysTickIntHandler (void) {
 	static int prevA = -1;
 	unsigned long pinRead;
 	unsigned int yawA, yawB;
-	int yawStep = (YAW_DEG_STEP_100 + 50) / 100;
 
 	// Trigger an ADC conversion
 	ADCProcessorTrigger(ADC_BASE, 3);
@@ -58,60 +56,18 @@ void SysTickIntHandler (void) {
 
 	if (!prevA && yawA) {
 		if (yawB) {
-			_yaw += yawStep;
+			_yaw100 += YAW_DEG_STEP_100;
 		} else {
-			_yaw -= yawStep;
+			_yaw100 -= YAW_DEG_STEP_100;
 		}
 	} else if (prevA && !yawA) {
 		if (yawB) {
-			_yaw -= yawStep;
+			_yaw100 -= YAW_DEG_STEP_100;
 		} else {
-			_yaw += yawStep;
+			_yaw100 += YAW_DEG_STEP_100;
 		}
 	}
 	prevA = yawA;
-}
-
-/**
- * Construct a status string and send via UART0.
- */
-void sendStatus () {
-	char string[160];
-	char* heliMode;
-
-	switch (_heliState) {
-	case HELI_OFF:
-		heliMode = "Landed";
-		break;
-	case HELI_STARTING:
-		heliMode = "Takeoff";
-		break;
-	case HELI_ON:
-		heliMode = "Flying";
-		break;
-	case HELI_STOPPING:
-		heliMode = "Landing";
-		break;
-	default:
-		heliMode = "Invalid";
-		break;
-	}
-
-	snprintf(string, 23, "Desired yaw: %d deg\r\n", _desiredYaw);
-	snprintf(string + strlen(string), 22, "Actual yaw: %d deg\r\n",
-			(_yaw + 50) / 100);
-	snprintf(string + strlen(string), 24, "Desired altitude: %d%%\r\n",
-			_desiredAltitude);
-	snprintf(string + strlen(string), 23, "Actual altitude: %d%%\r\n",
-			_avgAltitude);
-	snprintf(string + strlen(string), 18, "Main rotor: %d%%\r\n",
-			getDutyCycle100(MAIN_ROTOR) / 100);
-	snprintf(string + strlen(string), 18, "Tail rotor: %d%%\r\n",
-			getDutyCycle100(TAIL_ROTOR) / 100);
-	snprintf(string + strlen(string), 22, "Heli mode: %s\r\n\r\n",
-			heliMode);
-
-	UARTSend(string);
 }
 
 /**
@@ -189,7 +145,7 @@ void initMain (void) {
 int main (void) {
 	initMain();
 
-	static unsigned int count = 0;
+	static unsigned long count = 0;
 
 	while (1) {
 		if (_heliState == HELI_STARTING) {
@@ -214,7 +170,7 @@ int main (void) {
 		if (_heliState != HELI_OFF && count % 2000 == 0) {
 			yawControl();
 		}
-		count ++;
+		count++;
 
 
 		// Call the display functions

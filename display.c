@@ -39,7 +39,7 @@ void displayAltitude () {
  */
 void displayYaw () {
 	char string[20];
-	int degrees = (_yaw + 50) / 100;
+	int degrees = (_yaw100 + 50) / 100;
 	snprintf(string, 20, "Yaw: %4d deg", degrees);
 	RIT128x96x4StringDraw(string, 4, 34, 15);
 }

@@ -149,9 +149,9 @@ void yawControl (void) {
 	}
 	unsigned int currentDutyCycle100 = getDutyCycle100(TAIL_ROTOR);
 
-	if (_yaw < _desiredYaw * 100) {
+	if (_yaw100 < _desiredYaw100) {
 		setDutyCycle100(TAIL_ROTOR, currentDutyCycle100 + 50);
-	} else if (_yaw > _desiredYaw * 100) {
+	} else if (_yaw100 > _desiredYaw100) {
 		setDutyCycle100(TAIL_ROTOR, currentDutyCycle100 - 50);
 	}
 }

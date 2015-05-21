@@ -10,11 +10,11 @@
 /* Global Variables */
 
 // Actual values - set by interrupts that monitor the helicopter
-volatile int _yaw = 0; // Degrees * 100
+volatile int _yaw100 = 0; // Degrees * 100
 volatile int _avgAltitude = 0; // Percent
 
 // Desired values - set by button presses
-int _desiredYaw = 0; // Degrees
+int _desiredYaw100 = 0; // Degrees * 100
 int _desiredAltitude = 0; // Percent
 
 // State of the helicopter

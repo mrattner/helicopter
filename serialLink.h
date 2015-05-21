@@ -26,5 +26,10 @@ void initConsole (void);
  */
 void UARTSend (char* pucBuffer);
 
+/**
+ * Construct a status string and send via UART0.
+ */
+void sendStatus (void);
+
 
 #endif /* SERIALLINK_H_ */
