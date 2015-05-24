@@ -31,6 +31,7 @@ void initPWMchan (void) {
 	}
 	unsigned long period;
 
+	SysCtlPeripheralReset(SYSCTL_PERIPH_PWM);
 	SysCtlPeripheralEnable(SYSCTL_PERIPH_PWM);
 
 	// Configure both PWM generators' counting mode and synchronisation mode
@@ -52,7 +53,7 @@ void initPWMchan (void) {
 	PWMGenPeriodSet(PWM_BASE, PWM_GEN_2, period);
 	PWMPulseWidthSet(PWM_BASE, PWM_OUT_4, period * TAIL_INITIAL_DUTY100 / 10000);
 
-	// Enable the PWM output signals.
+	// Disable the PWM output signals until we want the heli to take off.
 	PWMOutputState(PWM_BASE, PWM_OUT_1_BIT | PWM_OUT_4_BIT, false);
 
 	// Enable the PWM generators.

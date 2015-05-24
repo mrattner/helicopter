@@ -10,7 +10,7 @@
 
 /* Constants */
 // Sample rate in Hz
-#define SYSTICK_RATE_HZ 6000
+#define SYSTICK_RATE_HZ 2000
 
 // Percent the altitude should change when buttons are pressed
 #define ALTITUDE_STEP 10

@@ -8,10 +8,13 @@
 #ifndef BUTTONCHECK_H_
 #define BUTTONCHECK_H_
 
+enum buttonPorts {PHYSICAL = 0, VIRTUAL = 1};
+
 /**
  * Initialise the buttons.
+ * @param port Either PHYSICAL or VIRTUAL
  */
-void initButtons (void);
+void initButtons (int port);
 
 /**
  * Checks each button for a press and performs an associated action:

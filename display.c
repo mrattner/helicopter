@@ -12,6 +12,8 @@
 
 /**
  * Initialise the OLED display with an SSI clock frequency of 200 kHz.
+ * Note that this can only be called after serialLink's initConsole()
+ * function because initConsole() resets GPIOA.
  */
 void initDisplay (void) {
 	RIT128x96x4Init(200000);
@@ -47,7 +49,7 @@ void displayYaw () {
 	char actualString[20];
 	char desiredString[20];
 	snprintf(actualString, 20, "Yaw*100: %d   ", _yaw100);
-	snprintf(desiredString, 20, "Desired*100: %d   ", _desiredYaw100);
+	snprintf(desiredString, 20, "Desired*100: %d    ", _desiredYaw100);
 
 	RIT128x96x4StringDraw(actualString, 4, 34, 15);
 	RIT128x96x4StringDraw(desiredString, 4, 44, 15);

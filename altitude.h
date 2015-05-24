@@ -15,6 +15,11 @@
 // How many samples over which to average the altitude
 #define BUF_SIZE 20
 
+// Difference in voltage between min. and max. altitude
+// expressed in quantisation levels.
+// V_DIFF_DISCRETE = (1023 * 0.8 V) / 3.0 V, rounded
+#define V_DIFF_DISCRETE 273
+
 /**
  * Handler for the ADC conversion complete interrupt.
  */
@@ -23,7 +28,7 @@ void ADCIntHandler (void);
 /**
  * Initialise the analogue-to-digital converter peripheral.
  */
-void initAltitudeMonitoring (void);
+void initADC (void);
 
 /**
  * Calculates the average altitude percentage from the values in

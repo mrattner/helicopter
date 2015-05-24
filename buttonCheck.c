@@ -5,6 +5,7 @@
 * Author: J. Shaw and M. Rattner
 **/
 
+#include "buttonCheck.h"
 #include "buttonSet.h"
 #include "button.h"
 #include "globals.h"
@@ -16,14 +17,26 @@
 
 /**
  * Initialise the buttons.
+ * @param port Either PHYSICAL or VIRTUAL
  */
-void initButtons (void) {
-	// Enable GPIO port B for the virtual buttons
-	SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOB);
-	// The button set being used is UP, DOWN, LEFT, RIGHT,
-	// SELECT, and RESET on the virtual port
-	initButSet(UP_B | DOWN_B | LEFT_B | RIGHT_B | SELECT_B | RESET_B,
-			VIRTUAL_PORT, SYSTICK_RATE_HZ);
+void initButtons (int port) {
+	if (port == VIRTUAL) {
+		// Enable GPIO port B for the virtual buttons
+		SysCtlPeripheralReset(SYSCTL_PERIPH_GPIOB);
+		SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOB);
+		// The button set being used is UP, DOWN, LEFT, RIGHT,
+		// SELECT, and RESET on the virtual port
+		initButSet(UP_B | DOWN_B | LEFT_B | RIGHT_B | SELECT_B | RESET_B,
+				VIRTUAL_PORT, SYSTICK_RATE_HZ);
+	} else if (port == PHYSICAL) {
+		// Enable GPIO port G for the physical buttons
+		SysCtlPeripheralReset(SYSCTL_PERIPH_GPIOG);
+		SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOG);
+		// The button set being used is UP, DOWN, LEFT, RIGHT,
+		// and SELECT on the physical port
+		initButSet(UP_B | DOWN_B | LEFT_B | RIGHT_B | SELECT_B,
+				PHYSICAL_PORT, SYSTICK_RATE_HZ);
+	}
 }
 
 /**

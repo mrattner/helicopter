@@ -20,6 +20,8 @@
  */
 void initConsole (void) {
 	// Enable GPIO port A which is used for UART0 pins
+	SysCtlPeripheralReset(SYSCTL_PERIPH_UART0);
+	SysCtlPeripheralReset(SYSCTL_PERIPH_GPIOA);
 	SysCtlPeripheralEnable(SYSCTL_PERIPH_UART0);
 	SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOA);
 

@@ -8,6 +8,8 @@
 
 /**
  * Initialise the OLED display with an SSI clock frequency of 200 kHz.
+ * Note that this can only be called after serialLink's initConsole()
+ * function because initConsole() resets GPIOA.
  */
 void initDisplay (void);
 

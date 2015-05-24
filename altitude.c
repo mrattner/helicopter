@@ -42,20 +42,24 @@ void ADCIntHandler (void) {
 	// Clear the ADC interrupt
 	ADCIntClear(ADC0_BASE, 3);
 
-	// On our first ADC sample, store the min and max altitude
-	if (minAltitude == -1) {
+	// Continually recalibrate min. and max. altitude while
+	// the helicopter is known to be landed
+	if (_heliState == HELI_OFF && ulValue > minAltitude) {
 		minAltitude = ulValue;
-		// 1023 is the max quantisation value (3.0 V). Divide
-		// this by 3/0.8 (3.75) to get the quantisation value for 0.8 V
-		maxAltitude = ulValue - ((102300 + 375/2) / 375);
+		// Max. altitude is a lower voltage level than min. altitude
+		maxAltitude = minAltitude - V_DIFF_DISCRETE;
 	}
 }
 
 /**
  * Initialise the analogue-to-digital converter peripheral.
  */
-void initAltitudeMonitoring (void) {
+void initADC (void) {
+	// Initialise the altitude buffer
+	initCircBuf(&altitudeBuffer, BUF_SIZE);
+
 	// Enable the ADC0 peripheral
+	SysCtlPeripheralReset(SYSCTL_PERIPH_ADC0);
 	SysCtlPeripheralEnable(SYSCTL_PERIPH_ADC0);
 
 	// Enable sample sequence 3 with a processor signal trigger.
@@ -80,9 +84,6 @@ void initAltitudeMonitoring (void) {
 
 	// Enable interrupts for ADC0 sequence 3
 	ADCIntEnable(ADC0_BASE, 3);
-
-	// Initialise the altitude buffer
-	initCircBuf(&altitudeBuffer, BUF_SIZE);
 }
 
 /**
