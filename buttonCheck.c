@@ -36,17 +36,24 @@ void initButtons (void) {
  *  RESET: Perform a "soft" system reset via SysCtl
  */
 void checkButtons (void) {
-	if (checkBut(UP)) {
+	if (checkBut(UP) && _heliState == HELI_ON) {
 		_desiredAltitude += ALTITUDE_STEP;
+		if (_desiredAltitude > 100) {
+			_desiredAltitude = 100;
+		}
 	}
-	else if (checkBut(DOWN)) {
+	else if (checkBut(DOWN) && _heliState == HELI_ON) {
 		_desiredAltitude -= ALTITUDE_STEP;
+		if (_desiredAltitude < 0) {
+			_desiredAltitude = 0;
+		}
 	}
-	else if (checkBut(LEFT)) {
+	else if (checkBut(LEFT) && _heliState == HELI_ON) {
 		_desiredYaw100 -= YAW_STEP_100;
 	}
-	else if (checkBut(RIGHT)) {
+	else if (checkBut(RIGHT) && _heliState == HELI_ON) {
 		_desiredYaw100 += YAW_STEP_100;
+
 	}
 	else if (checkBut(SELECT)) {
 		switch (_heliState) {
