@@ -6,12 +6,8 @@
  * Author: J. Shaw and Marcy Rattner
  */
 
-/*
- * Constants
- */
-
 /**
- * Initialise the OLED display with an SSI clock frequency of 1 MHz.
+ * Initialise the OLED display with an SSI clock frequency of 200 kHz.
  */
 void initDisplay (void);
 
@@ -32,4 +28,4 @@ void displayYaw ();
  * @param mainDuty Duty cycle of the main rotor
  * @param tailDuty Duty cycle of the tail rotor
  */
-void displayPWMStatus (unsigned int mainDuty, unsigned int tailDuty);
+void displayPWMStatus (unsigned int mainDuty100, unsigned int tailDuty100);

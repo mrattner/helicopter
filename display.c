@@ -7,15 +7,14 @@
 
 #include "globals.h"
 #include "inc/hw_types.h"
-#include "driverlib/pwm.h"
 #include "drivers/rit128x96x4.h"
 #include "stdio.h"
 
 /**
- * Initialise the OLED display with an SSI clock frequency of 1 MHz.
+ * Initialise the OLED display with an SSI clock frequency of 200 kHz.
  */
 void initDisplay (void) {
-	RIT128x96x4Init(1000000);
+	RIT128x96x4Init(200000);
 }
 
 /**
@@ -23,14 +22,21 @@ void initDisplay (void) {
  * the ADC will be ~1-2 V. Decreasing voltage = increasing altitude.
  */
 void displayAltitude () {
-	char string[20];
+	char actualString[20];
+	char desiredString[20];
+	char stateString[20];
 
 	if (_avgAltitude <= 100 && _avgAltitude >= 0) {
-		snprintf(string, 20, "Altitude: %3d%%  ", _avgAltitude);
+		snprintf(actualString, 20, "Altitude: %d%%    ", _avgAltitude);
 	} else {
-		snprintf(string, 20, "Invalid altitude");
+		snprintf(actualString, 20, "Invalid altitude");
 	}
-	RIT128x96x4StringDraw(string, 4, 14, 15);
+	snprintf(desiredString, 20, "Desired: %d%%   ", _desiredAltitude);
+	snprintf(stateString, 20, "Heli state: %d", _heliState);
+
+	RIT128x96x4StringDraw(actualString, 4, 14, 15);
+	RIT128x96x4StringDraw(desiredString, 4, 24, 15);
+	RIT128x96x4StringDraw(stateString, 4, 74, 15);
 }
 
 /**
@@ -38,10 +44,13 @@ void displayAltitude () {
  * position.
  */
 void displayYaw () {
-	char string[20];
-	int degrees = (_yaw100 + 50) / 100;
-	snprintf(string, 20, "Yaw: %4d deg", degrees);
-	RIT128x96x4StringDraw(string, 4, 34, 15);
+	char actualString[20];
+	char desiredString[20];
+	snprintf(actualString, 20, "Yaw*100: %d   ", _yaw100);
+	snprintf(desiredString, 20, "Desired*100: %d   ", _desiredYaw100);
+
+	RIT128x96x4StringDraw(actualString, 4, 34, 15);
+	RIT128x96x4StringDraw(desiredString, 4, 44, 15);
 }
 
 /**
@@ -49,11 +58,12 @@ void displayYaw () {
  * @param mainDuty Duty cycle of the main rotor
  * @param tailDuty Duty cycle of the tail rotor
  */
-void displayPWMStatus (unsigned int mainDuty, unsigned int tailDuty) {
+void displayPWMStatus (unsigned int mainDuty100, unsigned int tailDuty100) {
 	char mainString[20];
 	char tailString[20];
-	snprintf(mainString, 20, "Main rotor: %3d%%", mainDuty);
-	snprintf(tailString, 20, "Tail rotor: %3d%%", tailDuty);
+	snprintf(mainString, 20, "Main rotor: %d   ", mainDuty100);
+	snprintf(tailString, 20, "Tail rotor: %d   ", tailDuty100);
+
 	RIT128x96x4StringDraw(mainString, 4, 54, 15);
 	RIT128x96x4StringDraw(tailString, 4, 64, 15);
 }
