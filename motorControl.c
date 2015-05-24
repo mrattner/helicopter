@@ -16,6 +16,9 @@
 #include "driverlib/pwm.h"
 #include "driverlib/gpio.h"
 
+// Maximum % * 100 the duty cycle is allowed to change at once
+#define MAX_DUTY_CHANGE100 100 // 1%
+
 /**
  * Initialise the PWM generators. Should be called after the associated
  * GPIO pins have been enabled for output.
@@ -67,6 +70,8 @@ void powerDown (void) {
 
 	if (_avgAltitude < 2) {
 		PWMOutputState(PWM_BASE, PWM_OUT_1_BIT | PWM_OUT_4_BIT, false);
+		setDutyCycle100(MAIN_ROTOR, MAIN_INITIAL_DUTY100);
+		setDutyCycle100(TAIL_ROTOR, TAIL_INITIAL_DUTY100);
 		_heliState = HELI_OFF;
 	}
 }
@@ -78,10 +83,10 @@ void powerUp (void) {
 	if (!initialised) {
 		return;
 	}
-	PWMOutputState(PWM_BASE, PWM_OUT_1_BIT | PWM_OUT_4_BIT, true);
+
 	setDutyCycle100(MAIN_ROTOR, MAIN_INITIAL_DUTY100);
 	setDutyCycle100(TAIL_ROTOR, TAIL_INITIAL_DUTY100);
-
+	PWMOutputState(PWM_BASE, PWM_OUT_1_BIT | PWM_OUT_4_BIT, true);
 	_heliState = HELI_ON;
 }
 
@@ -99,6 +104,7 @@ void setDutyCycle100 (unsigned long rotor, unsigned int dutyCycle100) {
 				PWMGenPeriodGet(PWM_BASE, PWM_GEN_0) // main rotor PWM
 				: PWMGenPeriodGet(PWM_BASE, PWM_GEN_2); // tail rotor PWM
 
+	// If the desired duty cycle is below 5% or above 95%, hold.
 	if (dutyCycle100 < 500) {
 		dutyCycle100 = 500;
 	} else if (dutyCycle100 > 9500) {
@@ -134,10 +140,18 @@ void altitudeControl (void) {
 	unsigned int currentDutyCycle100 = getDutyCycle100(MAIN_ROTOR);
 	int error = _desiredAltitude - _avgAltitude;
 
-	// Kp = 4
+	// Kp = 5
 	// TODO: If it fluctuates too much, decrease Kp.
 	// If it doesn't respond, increase Kp.
-	setDutyCycle100(MAIN_ROTOR, currentDutyCycle100 + error * 4);
+	int correction = error * 5;
+
+	if (correction > MAX_DUTY_CHANGE100) {
+		correction = MAX_DUTY_CHANGE100;
+	} else if (correction < -1 * MAX_DUTY_CHANGE100) {
+		correction = -1 * MAX_DUTY_CHANGE100;
+	}
+
+	setDutyCycle100(MAIN_ROTOR, currentDutyCycle100 + correction);
 }
 
 /**
@@ -150,8 +164,16 @@ void yawControl (void) {
 	unsigned int currentDutyCycle100 = getDutyCycle100(TAIL_ROTOR);
 	int error = _desiredYaw100 - _yaw100;
 
-	// Kp = 1/2
+	// Kp = 1/3
 	// TODO: If it fluctuates too much, decrease Kp.
 	// If it doesn't respond, increase Kp.
-	setDutyCycle100(TAIL_ROTOR, currentDutyCycle100 + error / 2);
+	int correction = error / 3;
+
+	if (correction > MAX_DUTY_CHANGE100) {
+		correction = MAX_DUTY_CHANGE100;
+	} else if (correction < -1 * MAX_DUTY_CHANGE100) {
+		correction = -1 * MAX_DUTY_CHANGE100;
+	}
+
+	setDutyCycle100(TAIL_ROTOR, currentDutyCycle100 + correction);
 }
