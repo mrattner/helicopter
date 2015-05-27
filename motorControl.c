@@ -17,7 +17,7 @@
 #include "driverlib/gpio.h"
 
 // Maximum % * 100 the duty cycle is allowed to change at once
-#define MAX_DUTY_CHANGE100 100 // 1%
+#define MAX_DUTY_CHANGE100 400 // 4%
 
 /**
  * Initialise the PWM generators. Should be called after the associated
@@ -68,8 +68,13 @@ void initPWMchan (void) {
  */
 void powerDown (void) {
 	_desiredAltitude = 0;
+	unsigned int mainDuty = getDutyCycle100(MAIN_ROTOR);
 
-	if (_avgAltitude < 2) {
+	// Check that the heli is close to the ground and that the main rotor
+	// has a low duty cycle before shutting off.
+	// FIXME The duty cycle never gets to 5% because it stops lowering
+	// once the altitude is at 0%
+	if (_avgAltitude < 2 && mainDuty <= MAIN_INITIAL_DUTY100 + MAX_DUTY_CHANGE100) {
 		PWMOutputState(PWM_BASE, PWM_OUT_1_BIT | PWM_OUT_4_BIT, false);
 		setDutyCycle100(MAIN_ROTOR, MAIN_INITIAL_DUTY100);
 		setDutyCycle100(TAIL_ROTOR, TAIL_INITIAL_DUTY100);
@@ -141,10 +146,10 @@ void altitudeControl (void) {
 	unsigned int currentDutyCycle100 = getDutyCycle100(MAIN_ROTOR);
 	int error = _desiredAltitude - _avgAltitude;
 
-	// Kp = 5
+	// Kp = 4
 	// TODO: If it fluctuates too much, decrease Kp.
 	// If it doesn't respond, increase Kp.
-	int correction = error * 5;
+	int correction = error * 4;
 
 	if (correction > MAX_DUTY_CHANGE100) {
 		correction = MAX_DUTY_CHANGE100;
@@ -168,7 +173,7 @@ void yawControl (void) {
 	// Kp = 1/3
 	// TODO: If it fluctuates too much, decrease Kp.
 	// If it doesn't respond, increase Kp.
-	int correction = error / 3;
+	int correction = error / 10;
 
 	if (correction > MAX_DUTY_CHANGE100) {
 		correction = MAX_DUTY_CHANGE100;

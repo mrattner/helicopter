@@ -228,19 +228,19 @@ void sendStatus (void) {
 		break;
 	}
 
-	snprintf(string, 23, "Desired yaw: %d deg\r\n",
+	snprintf(string, 23, "Desired yaw: %d deg \n",
 			(_desiredYaw100 + 50) / 100);
-	snprintf(string + strlen(string), 22, "Actual yaw: %d deg\r\n",
+	snprintf(string + strlen(string), 22, "Actual yaw: %d deg \n",
 			(_yaw100 + 50) / 100);
-	snprintf(string + strlen(string), 24, "Desired altitude: %d%%\r\n",
+	snprintf(string + strlen(string), 24, "Desired altitude: %d%% \n",
 			_desiredAltitude);
-	snprintf(string + strlen(string), 23, "Actual altitude: %d%%\r\n",
+	snprintf(string + strlen(string), 23, "Actual altitude: %d%% \n",
 			_avgAltitude);
-	snprintf(string + strlen(string), 18, "Main rotor: %d%%\r\n",
+	snprintf(string + strlen(string), 18, "Main rotor: %d%% \n",
 			(getDutyCycle100(MAIN_ROTOR) + 50) / 100);
-	snprintf(string + strlen(string), 18, "Tail rotor: %d%%\r\n",
+	snprintf(string + strlen(string), 18, "Tail rotor: %d%% \n",
 			(getDutyCycle100(TAIL_ROTOR) + 50) / 100);
-	snprintf(string + strlen(string), 22, "Heli mode: %s\r\n\r\n",
+	snprintf(string + strlen(string), 22, "Heli mode: %s \n\n",
 			heliMode);
 
 	UARTSend(string);
@@ -256,20 +256,18 @@ void initMain (void) {
 	SysCtlClockSet(SYSCTL_SYSDIV_10 | SYSCTL_USE_PLL | SYSCTL_OSC_MAIN |
 				   SYSCTL_XTAL_8MHZ);
 
+	initConsole();
+	tasks[MESSAGE].blocked = 0;
+
+	initDisplay();
+	tasks[DISPLAY].blocked = 0;
+
 	initPins();
 	initADC();
 	initButtons(VIRTUAL);
 	initPWMchan();
 	initSysTick();
 	initTimer();
-
-	initConsole();
-	tasks[MESSAGE].blocked = 0;
-
-	// TODO button presses seem to be ignored on actual heli
-	// when display is initialised
-	initDisplay();
-	tasks[DISPLAY].blocked = 0;
 
 	SysCtlDelay(2);
 
