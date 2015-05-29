@@ -28,11 +28,7 @@ void displayAltitude () {
 	char desiredString[20];
 	char stateString[20];
 
-	if (_avgAltitude <= 100 && _avgAltitude >= 0) {
-		snprintf(actualString, 20, "Altitude: %d%%    ", _avgAltitude);
-	} else {
-		snprintf(actualString, 20, "Invalid altitude");
-	}
+	snprintf(actualString, 20, "Altitude: %d%%        ", _avgAltitude);
 	snprintf(desiredString, 20, "Desired: %d%%   ", _desiredAltitude);
 	snprintf(stateString, 20, "Heli state: %d", _heliState);
 
@@ -48,7 +44,7 @@ void displayAltitude () {
 void displayYaw () {
 	char actualString[20];
 	char desiredString[20];
-	snprintf(actualString, 20, "Yaw*100: %d   ", _yaw100);
+	snprintf(actualString, 20, "Yaw*100: %d    ", _yaw100);
 	snprintf(desiredString, 20, "Desired*100: %d    ", _desiredYaw100);
 
 	RIT128x96x4StringDraw(actualString, 4, 34, 15);

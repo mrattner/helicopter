@@ -15,8 +15,13 @@
 #define MAIN_ROTOR PWM_OUT_1
 #define TAIL_ROTOR PWM_OUT_4
 #define PWM_RATE_HZ 150 // Frequency of the PWM generator
-#define MAIN_INITIAL_DUTY100 1000 // Initial duty cycle
+#define MAIN_INITIAL_DUTY100 500 // Initial duty cycle
 #define TAIL_INITIAL_DUTY100 500 // Initial duty cycle
+#define MIN_DUTY100 500
+#define MAX_DUTY100 9500
+
+// Maximum % * 100 the duty cycle is allowed to change at once
+#define MAX_DUTY_CHANGE100 500 // 5%
 
 /*
  * Static variables
@@ -54,6 +59,14 @@ void setDutyCycle100 (unsigned long rotor, unsigned int dutyCycle100);
  * @return The current duty cycle % of that rotor's PWM channel
  */
 unsigned int getDutyCycle100 (unsigned long rotor);
+
+/**
+ * Adjusts duty cycle from current duty cycle.
+ * Used for testing the open loop response of the helicopter motors.
+ * @param rotor Either MAIN_ROTOR or TAIL_ROTOR
+ * @param amount Percentage * 100 to adjust the duty cycle
+ */
+void changeDutyCycle (unsigned long rotor, signed int amount);
 
 /**
  * Adjusts the PWM duty cycle of the main rotor to control the altitude.

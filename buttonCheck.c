@@ -63,10 +63,15 @@ void checkButtons (void) {
 	}
 	else if (checkBut(LEFT) && _heliState == HELI_ON) {
 		_desiredYaw100 -= YAW_STEP_100;
+		if (_desiredYaw100 < -34500) {
+			_desiredYaw100 = -34500;
+		}
 	}
 	else if (checkBut(RIGHT) && _heliState == HELI_ON) {
 		_desiredYaw100 += YAW_STEP_100;
-
+		if (_desiredYaw100 > 34500) {
+			_desiredYaw100 = 34500;
+		}
 	}
 	else if (checkBut(SELECT)) {
 		switch (_heliState) {

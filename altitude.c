@@ -24,8 +24,8 @@
 static circBuf_t altitudeBuffer;
 
 // Minimum and maximum altitude values. Higher number = lower altitude
-static int minAltitude = -1;
-static int maxAltitude = -1;
+static long minAltitude = -1;
+static long maxAltitude = -1;
 
 // Number of ADC reads during which the heli has been landed
 static unsigned long landedCount = 0;
@@ -41,6 +41,11 @@ void ADCIntHandler (void) {
 
 	// Get the sample from ADC0 and store in ulValue
 	ADCSequenceDataGet(ADC0_BASE, 3, &ulValue);
+
+	// Ignore invalid values
+	if (ulValue > 1023) {
+		return;
+	}
 
 	// Place ulValue in the altitude buffer
 	writeCircBuf(&altitudeBuffer, ulValue);
@@ -113,7 +118,7 @@ void calcAvgAltitude (void) {
 
 	// Continually recalibrate min. and max. altitude while
 	// the helicopter is known to be landed
-	if (landedCount > altitudeBuffer.size) {
+	if (landedCount > altitudeBuffer.size && meanA > V_DIFF_DISCRETE) {
 		minAltitude = meanA;
 		// Max. altitude is a lower voltage level than min. altitude
 		maxAltitude = minAltitude - V_DIFF_DISCRETE;
@@ -123,6 +128,6 @@ void calcAvgAltitude (void) {
 	// altitude voltage level. Divide this number by the difference
 	// between the max. and min. altitude levels and multiply by 100
 	// to get the altitude as a percentage.
-	_avgAltitude = (minAltitude - meanA) * 100 /
+	_avgAltitude = (minAltitude - (signed long)meanA) * 100 /
 			(minAltitude - maxAltitude);
 }

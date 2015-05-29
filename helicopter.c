@@ -207,7 +207,7 @@ void initTimer (void) {
  * Construct a status string and send via UART0.
  */
 void sendStatus (void) {
-	char string[160];
+	char string[170];
 	char* heliMode;
 
 	switch (_heliState) {
@@ -234,7 +234,7 @@ void sendStatus (void) {
 			(_yaw100 + 50) / 100);
 	snprintf(string + strlen(string), 24, "Desired altitude: %d%% \n",
 			_desiredAltitude);
-	snprintf(string + strlen(string), 23, "Actual altitude: %d%% \n",
+	snprintf(string + strlen(string), 33, "Actual altitude: %d%% \n",
 			_avgAltitude);
 	snprintf(string + strlen(string), 18, "Main rotor: %d%% \n",
 			(getDutyCycle100(MAIN_ROTOR) + 50) / 100);
@@ -281,6 +281,7 @@ void initMain (void) {
 int main (void) {
 	defineTasks();
 	initMain();
+	UARTSend("UART is operational.\n\n");
 
 	while (1) {
 		if (_heliState == HELI_STARTING) {
