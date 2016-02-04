@@ -1,0 +1,1 @@
+"./altitude.obj" "./button.obj" "./buttonCheck.obj" "./circBuf.obj" "./display.obj" "./globals.obj" "./helicopter.obj" "./lm3s1968_startup_ccs.obj" "./motorControl.obj" "./pid.obj" "./rit128x96x4.obj" "./serialLink.obj" "./ustdlib.obj" "../lm3s1968.cmd" -l"libc.a" -l"C:\ti\StellarisWare\driverlib\ccs-cm3\Debug\driverlib-cm3.lib" 
